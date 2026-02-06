@@ -1,0 +1,302 @@
+---
+# Backend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chatbot-rag-backend
+  namespace: default
+  labels:
+    app: chatbot-rag
+    component: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: chatbot-rag
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: chatbot-rag
+        component: backend
+    spec:
+      serviceAccountName: chatbot-rag-backend
+      containers:
+      - name: backend
+        image: us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/backend:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PROJECT_ID
+          value: "btoproject-486405"
+        - name: REGION
+          value: "us-central1"
+        - name: ENVIRONMENT
+          value: "production"
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: redis_host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: redis_port
+        - name: VERTEX_LOCATION
+          value: "us-central1"
+        - name: MODEL_VARIANT
+          value: "gemini-2.0-flash-001"
+        - name: EMBEDDING_MODEL
+          value: "text-embedding-004"
+        - name: GCS_BUCKET
+          value: "btoproject-486405-rag-documents"
+        - name: ADMIN_EMAILS
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: admin_emails
+        - name: GOOGLE_CLIENT_IDS
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: google_client_ids
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: chatbot-rag-backend
+  namespace: default
+  labels:
+    app: chatbot-rag
+    component: backend
+spec:
+  type: NodePort
+  selector:
+    app: chatbot-rag
+    component: backend
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+---
+# Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chatbot-rag-frontend
+  namespace: default
+  labels:
+    app: chatbot-rag
+    component: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: chatbot-rag
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: chatbot-rag
+        component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/frontend:latest
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: API_URL
+          value: "http://chatbot-rag-backend"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: chatbot-rag-frontend
+  namespace: default
+  labels:
+    app: chatbot-rag
+    component: frontend
+spec:
+  type: NodePort
+  selector:
+    app: chatbot-rag
+    component: frontend
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+---
+# Ingress with Google Cloud Load Balancer
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chatbot-rag-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "chatbot-rag-ip"
+    networking.gke.io/managed-certificates: "chatbot-rag-cert"
+    ingress.gcp.kubernetes.io/pre-shared-cert: "chatbot-rag-ssl"
+  labels:
+    app: chatbot-rag
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /api/*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: chatbot-rag-backend
+            port:
+              number: 80
+      - path: /*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: chatbot-rag-frontend
+            port:
+              number: 80
+---
+# Horizontal Pod Autoscaler for Backend
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: chatbot-rag-backend-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: chatbot-rag-backend
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+---
+# Horizontal Pod Autoscaler for Frontend
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: chatbot-rag-frontend-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: chatbot-rag-frontend
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+---
+# ConfigMap for application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: default
+data:
+  redis_host: "REDIS_HOST_FROM_TERRAFORM"
+  redis_port: "6379"
+  environment: "production"
+---
+# Service Account for Workload Identity
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chatbot-rag-backend
+  namespace: default
+  annotations:
+    iam.gke.io/gcp-service-account: chatbot-rag-app@btoproject-486405.iam.gserviceaccount.com
+---
+# Pod Disruption Budget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: chatbot-rag-backend-pdb
+  namespace: default
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: chatbot-rag
+      component: backend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: chatbot-rag-frontend-pdb
+  namespace: default
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: chatbot-rag
+      component: frontend

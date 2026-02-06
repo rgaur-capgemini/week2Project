@@ -1,0 +1,16 @@
+
+steps:
+- name: gcr.io/cloud-builders/docker
+  args: ["build", "-t", "gcr.io/btoproject-486405/rag-service:latest", "."]
+- name: gcr.io/cloud-builders/docker
+  args: ["push", "gcr.io/btoproject-486405/rag-service:latest"]
+- name: "gcr.io/cloud-builders/gcloud"
+  args:
+    ["run", "deploy", "rag-service",
+     "--image=gcr.io/btoproject-486405/rag-service:latest",
+     "--service-account=rag-system-sa@btoproject-486405.iam.gserviceaccount.com",
+     "--region=us-central1",
+     "--set-env-vars","PROJECT_ID=btoproject-486405,REGION=us-central1,VERTEX_LOCATION=us-central1,VERTEX_INDEX_ID=rag-index,VERTEX_INDEX_ENDPOINT=rag-index-endpoint,MODEL_VARIANT=gemini-2.0-flash-001",
+     "--allow-unauthenticated"]
+images:
+- "gcr.io/btoproject-486405/rag-service:latest"

@@ -1,0 +1,47 @@
+
+openapi: 3.0.3
+info:
+  title: Week1 RAG Service
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200': { description: OK }
+  /ingest:
+    post:
+      summary: Ingest documents
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '200': { description: Ingestion result }
+  /query:
+    post:
+      summary: Query RAG
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200': { description: Answer }
+components:
+  schemas:
+    QueryRequest:
+      type: object
+      properties:
+        question: { type: string }
+        top_k: { type: integer, default: 5 }

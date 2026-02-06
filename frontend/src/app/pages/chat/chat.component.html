@@ -1,0 +1,124 @@
+<div class="chat-layout">
+  <!-- Sidebar -->
+  <div class="sidebar" [class.open]="sidebarOpen">
+    <div class="sidebar-header">
+      <h2>Chat History</h2>
+      <button class="btn-icon" (click)="toggleSidebar()">
+        <span *ngIf="sidebarOpen">☰</span>
+        <span *ngIf="!sidebarOpen">→</span>
+      </button>
+    </div>
+
+    <button class="btn-new-chat" (click)="startNewChat()">
+      + New Chat
+    </button>
+
+    <div class="sessions-list">
+      <div
+        *ngFor="let session of sessions"
+        class="session-item"
+        [class.active]="currentSession?.session_id === session.session_id"
+        (click)="selectSession(session)"
+      >
+        <div class="session-info">
+          <div class="session-title">{{ session.title }}</div>
+          <div class="session-meta">
+            {{ session.message_count }} messages
+          </div>
+        </div>
+        <button class="btn-delete" (click)="deleteSession(session, $event)">
+          🗑️
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="header">
+      <div class="header-left">
+        <button class="btn-icon" (click)="toggleSidebar()" *ngIf="!sidebarOpen">
+          ☰
+        </button>
+        <h1>ChatBot RAG</h1>
+      </div>
+      <div class="header-right">
+        <div class="user-info" *ngIf="currentUser">
+          <img [src]="currentUser.picture" [alt]="currentUser.name" class="user-avatar">
+          <span>{{ currentUser.name }}</span>
+        </div>
+        <button class="btn-secondary" (click)="goToAdmin()" *ngIf="isAdmin">
+          Admin
+        </button>
+        <button class="btn-secondary" (click)="logout()">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <div class="messages-container" #messagesContainer>
+      <div class="welcome" *ngIf="messages.length === 0 && !isLoading">
+        <h2>Welcome to ChatBot RAG</h2>
+        <p>Ask questions about your documents and get AI-powered answers.</p>
+        <div class="sample-questions">
+          <h3>Sample Questions:</h3>
+          <button class="sample-btn" (click)="queryText = 'What is this document about?'; sendQuery()">
+            What is this document about?
+          </button>
+          <button class="sample-btn" (click)="queryText = 'Summarize the key points'; sendQuery()">
+            Summarize the key points
+          </button>
+          <button class="sample-btn" (click)="queryText = 'Explain the methodology'; sendQuery()">
+            Explain the methodology
+          </button>
+        </div>
+      </div>
+
+      <div *ngFor="let message of messages" class="message" [class.user]="message.role === 'user'" [class.assistant]="message.role === 'assistant'">
+        <div class="message-avatar">
+          <span *ngIf="message.role === 'user'">👤</span>
+          <span *ngIf="message.role === 'assistant'">🤖</span>
+        </div>
+        <div class="message-content">
+          <div class="message-role">{{ message.role === 'user' ? 'You' : 'Assistant' }}</div>
+          <div class="message-text" *ngIf="message.role === 'user'">{{ message.content }}</div>
+          <markdown class="message-text markdown-content" *ngIf="message.role === 'assistant'">{{ message.content }}</markdown>
+          <div class="message-meta" *ngIf="message.metadata">
+            <span *ngIf="message.metadata.response_time_ms">
+              Response time: {{ message.metadata.response_time_ms.toFixed(0) }}ms
+            </span>
+            <span *ngIf="message.metadata.token_usage">
+              Tokens: {{ message.metadata.token_usage.total_tokens }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="isLoading" class="message assistant loading">
+        <div class="message-avatar">🤖</div>
+        <div class="message-content">
+          <div class="message-role">Assistant</div>
+          <div class="typing-indicator">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-container">
+      <form (ngSubmit)="sendQuery()" class="input-form">
+        <textarea
+          [(ngModel)]="queryText"
+          name="query"
+          placeholder="Ask a question..."
+          rows="3"
+          [disabled]="isLoading"
+          (keydown.enter)="$event.preventDefault(); !$event.shiftKey && sendQuery()"
+        ></textarea>
+        <button type="submit" class="btn-send" [disabled]="!queryText.trim() || isLoading">
+          Send
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

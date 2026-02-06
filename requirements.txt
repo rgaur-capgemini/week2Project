@@ -1,0 +1,63 @@
+
+# FastAPI and web server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+python-multipart==0.0.6
+
+# Document processing
+bs4==0.0.2
+beautifulsoup4==4.12.3
+PyPDF2==3.0.1
+python-docx==1.1.0
+
+# OpenTelemetry observability
+opentelemetry-sdk==1.22.0
+opentelemetry-instrumentation-fastapi==0.43b0
+opentelemetry-exporter-gcp-trace==1.6.0
+opentelemetry-exporter-gcp-monitoring==1.6.0a0
+
+# Google Cloud Platform
+google-cloud-aiplatform==1.40.0
+google-cloud-storage==2.14.0
+google-cloud-logging==3.9.0
+google-cloud-firestore==2.14.0
+google-cloud-secret-manager==2.17.0
+google-cloud-dlp==3.15.0
+google-auth==2.27.0
+
+# Redis for chat history
+redis==5.0.1
+hiredis==2.3.2
+
+# Vector operations and ML
+numpy==1.26.4
+scipy==1.12.0
+
+# Anthropic for Claude support (optional)
+anthropic[vertex]==0.18.1
+
+# RAG evaluation
+ragas==0.1.5
+datasets==2.16.1
+
+# LangGraph for stateful RAG workflows
+langgraph==0.0.20
+langchain-core==0.1.18
+langchain-google-vertexai==0.1.0
+langchain==0.1.6
+
+# Semantic chunking
+semantic-text-splitter==0.13.0
+spacy==3.7.4
+
+# Utilities
+aiofiles==23.2.1
+python-dotenv==1.0.1
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+httpx==0.26.0

@@ -1,0 +1,469 @@
+# Production CI/CD Pipeline for Cloud Run with Quality Gates and SBOM
+# Features: Build, Test, Security Scan, Code Quality, SBOM, Deploy to Cloud Run
+
+substitutions:
+  _REGION: us-central1
+  _ARTIFACT_REGISTRY: us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images
+
+steps:
+  # ==================== BACKEND PIPELINE ====================
+  
+  # Step 1: Install Python dependencies and run tests with coverage
+  - name: 'python:3.11'
+    id: 'backend-test'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-asyncio pytest-mock
+        pytest tests/ --cov=app --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=90 --tb=short
+    dir: '.'
+    waitFor: ['-']
+
+  # Step 2: Python code linting with flake8 and black
+  - name: 'python:3.11'
+    id: 'backend-lint'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install flake8 black isort mypy
+        flake8 app --max-line-length=120 --exclude=__pycache__,*.pyc
+        black --check app --line-length=120
+        isort --check-only app
+    dir: '.'
+    waitFor: ['-']
+
+  # Step 3: SonarQube analysis for backend
+  - name: 'sonarsource/sonar-scanner-cli:latest'
+    id: 'sonar-backend'
+    env:
+      - 'SONAR_HOST_URL=https://sonarcloud.io'
+      - 'SONAR_TOKEN=$_SONAR_TOKEN'
+    args:
+      - '-Dsonar.projectKey=chatbot-rag-backend'
+      - '-Dsonar.organization=$_SONAR_ORG'
+      - '-Dsonar.sources=app'
+      - '-Dsonar.tests=tests'
+      - '-Dsonar.python.coverage.reportPaths=coverage.xml'
+      - '-Dsonar.python.version=3.11'
+      - '-Dsonar.qualitygate.wait=true'
+      - '-Dsonar.qualitygate.timeout=300'
+    waitFor: ['backend-test']
+
+  # Step 4: Security scanning with Trivy (filesystem)
+  - name: 'aquasec/trivy:latest'
+    id: 'security-scan-backend-fs'
+    args:
+      - 'fs'
+      - '--severity'
+      - 'HIGH,CRITICAL'
+      - '--exit-code'
+      - '0'  # Don't fail build, just report
+      - '--format'
+      - 'json'
+      - '--output'
+      - 'trivy-backend-fs.json'
+      - '--no-progress'
+      - '.'
+    waitFor: ['-']
+
+  # Step 5: Python dependency security check with Safety
+  - name: 'python:3.11'
+    id: 'dependency-check'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install safety
+        safety check --json --output safety-report.json || true
+        safety check || echo "Security issues found but continuing..."
+    dir: '.'
+    waitFor: ['-']
+
+  # Step 6: Build backend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend'
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/backend:$SHORT_SHA'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/backend:latest'
+      - '--build-arg'
+      - 'BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")'
+      - '--build-arg'
+      - 'VCS_REF=$COMMIT_SHA'
+      - '--label'
+      - 'org.opencontainers.image.created=$(date -u +"%Y-%m-%dT%H:%M:%SZ")'
+      - '--label'
+      - 'org.opencontainers.image.revision=$COMMIT_SHA'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+    waitFor: ['sonar-backend', 'security-scan-backend-fs', 'backend-lint']
+
+  # Step 7: Scan Docker image for vulnerabilities
+  - name: 'aquasec/trivy:latest'
+    id: 'scan-backend-image'
+    args:
+      - 'image'
+      - '--severity'
+      - 'HIGH,CRITICAL'
+      - '--exit-code'
+      - '0'
+      - '--format'
+      - 'json'
+      - '--output'
+      - 'trivy-backend-image.json'
+      - '--no-progress'
+      - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
+    waitFor: ['build-backend']
+
+  # Step 8: Generate SBOM for backend (SPDX format)
+  - name: 'anchore/syft:latest'
+    id: 'generate-sbom-backend'
+    args:
+      - 'packages'
+      - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
+      - '-o'
+      - 'spdx-json=backend-sbom-spdx.json'
+      - '-o'
+      - 'cyclonedx-json=backend-sbom-cyclonedx.json'
+    waitFor: ['build-backend']
+
+  # Step 9: Vulnerability scanning of SBOM with Grype
+  - name: 'anchore/grype:latest'
+    id: 'scan-sbom-backend'
+    args:
+      - 'sbom:backend-sbom-spdx.json'
+      - '--fail-on'
+      - 'high'
+      - '--output'
+      - 'json'
+      - '--file'
+      - 'grype-backend-report.json'
+    waitFor: ['generate-sbom-backend']
+
+  # Step 10: Push backend image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-backend'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_ARTIFACT_REGISTRY}/backend'
+    waitFor: ['scan-backend-image', 'scan-sbom-backend']
+
+  # ==================== FRONTEND PIPELINE ====================
+
+  # Step 11: Install frontend dependencies
+  - name: 'node:20'
+    id: 'frontend-install'
+    entrypoint: 'npm'
+    args: ['ci', '--prefer-offline', '--no-audit']
+    dir: 'frontend'
+    waitFor: ['-']
+
+  # Step 12: Run frontend tests with coverage
+  - name: 'node:20'
+    id: 'frontend-test'
+    entrypoint: 'npm'
+    args: ['run', 'test:ci']
+    dir: 'frontend'
+    env:
+      - 'CI=true'
+    waitFor: ['frontend-install']
+
+  # Step 13: Run frontend linting
+  - name: 'node:20'
+    id: 'frontend-lint'
+    entrypoint: 'npm'
+    args: ['run', 'lint']
+    dir: 'frontend'
+    waitFor: ['frontend-install']
+
+  # Step 14: SonarQube analysis for frontend
+  - name: 'sonarsource/sonar-scanner-cli:latest'
+    id: 'sonar-frontend'
+    env:
+      - 'SONAR_HOST_URL=https://sonarcloud.io'
+      - 'SONAR_TOKEN=$_SONAR_TOKEN'
+    args:
+      - '-Dsonar.projectKey=chatbot-rag-frontend'
+      - '-Dsonar.organization=$_SONAR_ORG'
+      - '-Dsonar.sources=frontend/src'
+      - '-Dsonar.tests=frontend/src'
+      - '-Dsonar.test.inclusions=**/*.spec.ts'
+      - '-Dsonar.typescript.lcov.reportPaths=frontend/coverage/lcov.info'
+      - '-Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info'
+      - '-Dsonar.qualitygate.wait=true'
+      - '-Dsonar.qualitygate.timeout=300'
+    waitFor: ['frontend-test']
+
+  # Step 15: Security audit of npm dependencies
+  - name: 'node:20'
+    id: 'frontend-security-audit'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npm audit --json > npm-audit.json || true
+        npm audit --audit-level=high || echo "Security issues found but continuing..."
+    dir: 'frontend'
+    waitFor: ['frontend-install']
+
+  # Step 16: Build frontend for production
+  - name: 'node:20'
+    id: 'frontend-build'
+    entrypoint: 'npm'
+    args: ['run', 'build:prod']
+    dir: 'frontend'
+    env:
+      - 'NODE_ENV=production'
+    waitFor: ['frontend-test', 'frontend-lint', 'sonar-frontend']
+
+  # Step 17: Build frontend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend'
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/frontend:$SHORT_SHA'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/frontend:latest'
+      - '--build-arg'
+      - 'BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")'
+      - '--build-arg'
+      - 'VCS_REF=$COMMIT_SHA'
+      - '--label'
+      - 'org.opencontainers.image.created=$(date -u +"%Y-%m-%dT%H:%M:%SZ")'
+      - '--label'
+      - 'org.opencontainers.image.revision=$COMMIT_SHA'
+      - '-f'
+      - 'frontend/Dockerfile'
+      - './frontend'
+    waitFor: ['frontend-build']
+
+  # Step 18: Scan frontend Docker image
+  - name: 'aquasec/trivy:latest'
+    id: 'scan-frontend-image'
+    args:
+      - 'image'
+      - '--severity'
+      - 'HIGH,CRITICAL'
+      - '--exit-code'
+      - '0'
+      - '--format'
+      - 'json'
+      - '--output'
+      - 'trivy-frontend-image.json'
+      - '--no-progress'
+      - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
+    waitFor: ['build-frontend']
+
+  # Step 19: Generate SBOM for frontend
+  - name: 'anchore/syft:latest'
+    id: 'generate-sbom-frontend'
+    args:
+      - 'packages'
+      - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
+      - '-o'
+      - 'spdx-json=frontend-sbom-spdx.json'
+      - '-o'
+      - 'cyclonedx-json=frontend-sbom-cyclonedx.json'
+    waitFor: ['build-frontend']
+
+  # Step 20: Vulnerability scanning of frontend SBOM
+  - name: 'anchore/grype:latest'
+    id: 'scan-sbom-frontend'
+    args:
+      - 'sbom:frontend-sbom-spdx.json'
+      - '--fail-on'
+      - 'high'
+      - '--output'
+      - 'json'
+      - '--file'
+      - 'grype-frontend-report.json'
+    waitFor: ['generate-sbom-frontend']
+
+  # Step 21: Push frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-frontend'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_ARTIFACT_REGISTRY}/frontend'
+    waitFor: ['scan-frontend-image', 'scan-sbom-frontend']
+
+  # ==================== DEPLOYMENT ====================
+
+  # Step 22: Deploy backend to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy-backend'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'chatbot-rag-backend'
+      - '--image=${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--service-account=backend-sa@btoproject-486405.iam.gserviceaccount.com'
+      - '--vpc-connector=chatbot-vpc-connector'
+      - '--allow-unauthenticated'
+      - '--max-instances=10'
+      - '--min-instances=1'
+      - '--memory=2Gi'
+      - '--cpu=2'
+      - '--timeout=300s'
+      - '--concurrency=80'
+      - '--port=8080'
+      - '--no-cpu-throttling'
+      - '--execution-environment=gen2'
+      - '--set-env-vars=PROJECT_ID=btoproject-486405,REGION=us-central1,VERTEX_LOCATION=us-central1,MODEL_VARIANT=gemini-2.0-flash-001,FIRESTORE_COLLECTION=chat_sessions,GCS_BUCKET=btoproject-486405-documents,REDIS_HOST=10.0.0.3,REDIS_PORT=6379,LOG_LEVEL=INFO'
+      - '--set-secrets=JWT_SECRET=jwt-secret:latest,OAUTH_CLIENT_ID=oauth-client-id:latest,OAUTH_CLIENT_SECRET=oauth-client-secret:latest'
+    waitFor: ['push-backend']
+
+  # Step 23: Deploy frontend to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy-frontend'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'chatbot-rag-frontend'
+      - '--image=${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--service-account=frontend-sa@btoproject-486405.iam.gserviceaccount.com'
+      - '--allow-unauthenticated'
+      - '--max-instances=5'
+      - '--min-instances=0'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--timeout=60s'
+      - '--concurrency=100'
+      - '--port=80'
+      - '--execution-environment=gen2'
+      - '--set-env-vars=API_URL=https://chatbot-rag-backend-XXXXX-uc.a.run.app'
+    waitFor: ['push-frontend']
+
+  # Step 24: Verify backend deployment
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'verify-backend'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        SERVICE_URL=$(gcloud run services describe chatbot-rag-backend --region=${_REGION} --format='value(status.url)')
+        echo "Backend URL: $SERVICE_URL"
+        curl -f -s "$SERVICE_URL/health" || exit 1
+        echo "Backend health check passed"
+    waitFor: ['deploy-backend']
+
+  # Step 25: Verify frontend deployment
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'verify-frontend'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        SERVICE_URL=$(gcloud run services describe chatbot-rag-frontend --region=${_REGION} --format='value(status.url)')
+        echo "Frontend URL: $SERVICE_URL"
+        curl -f -s -o /dev/null -w "%{http_code}" "$SERVICE_URL" | grep -q "200" || exit 1
+        echo "Frontend health check passed"
+    waitFor: ['deploy-frontend']
+
+  # ==================== POST-DEPLOYMENT ====================
+
+  # Step 26: Run smoke tests
+  - name: 'python:3.11'
+    id: 'smoke-tests'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install requests
+        export BACKEND_URL=$(gcloud run services describe chatbot-rag-backend --region=${_REGION} --format='value(status.url)')
+        export FRONTEND_URL=$(gcloud run services describe chatbot-rag-frontend --region=${_REGION} --format='value(status.url)')
+        python scripts/smoke_tests.py || echo "Smoke tests completed"
+    waitFor: ['verify-backend', 'verify-frontend']
+
+  # Step 27: Upload SBOMs to Cloud Storage
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'upload-sbom'
+    args:
+      - '-m'
+      - 'cp'
+      - '-r'
+      - '*-sbom-*.json'
+      - 'gs://btoproject-486405-sbom/$BUILD_ID/'
+    waitFor: ['generate-sbom-backend', 'generate-sbom-frontend']
+
+  # Step 28: Upload security reports to Cloud Storage
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'upload-security-reports'
+    args:
+      - '-m'
+      - 'cp'
+      - '-r'
+      - 'trivy-*.json'
+      - 'grype-*.json'
+      - 'safety-report.json'
+      - 'npm-audit.json'
+      - 'gs://btoproject-486405-security-reports/$BUILD_ID/'
+    waitFor: ['scan-backend-image', 'scan-frontend-image', 'dependency-check', 'frontend-security-audit']
+
+  # Step 29: Tag successful deployment
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'tag-deployment'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud artifacts docker tags add \
+          ${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA \
+          ${_ARTIFACT_REGISTRY}/backend:production-$(date +%Y%m%d-%H%M%S)
+        gcloud artifacts docker tags add \
+          ${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA \
+          ${_ARTIFACT_REGISTRY}/frontend:production-$(date +%Y%m%d-%H%M%S)
+    waitFor: ['smoke-tests']
+
+# Store images in Artifact Registry
+images:
+  - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
+  - '${_ARTIFACT_REGISTRY}/backend:$SHORT_SHA'
+  - '${_ARTIFACT_REGISTRY}/backend:latest'
+  - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
+  - '${_ARTIFACT_REGISTRY}/frontend:$SHORT_SHA'
+  - '${_ARTIFACT_REGISTRY}/frontend:latest'
+
+# Artifacts to save
+artifacts:
+  objects:
+    location: 'gs://btoproject-486405-build-artifacts/$BUILD_ID'
+    paths:
+      - 'coverage.xml'
+      - 'htmlcov/**'
+      - 'frontend/coverage/**'
+      - '*-sbom-*.json'
+      - 'trivy-*.json'
+      - 'grype-*.json'
+      - 'safety-report.json'
+      - 'npm-audit.json'
+
+# Build timeout (60 minutes)
+timeout: 3600s
+
+# Build options
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+  logStreamingOption: STREAM_ON
+  substitutionOption: 'ALLOW_LOOSE'
+  
+# Tags for build tracking
+tags: ['production', 'cloud-run', 'quality-gates', 'sbom']

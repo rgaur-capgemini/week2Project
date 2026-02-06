@@ -1,0 +1,232 @@
+<div class="admin-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>Admin Dashboard</h1>
+    </div>
+    <div class="header-right">
+      <button class="btn-secondary" (click)="goToChat()">Back to Chat</button>
+      <button class="btn-secondary" (click)="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button
+      class="tab"
+      [class.active]="activeTab === 'usage'"
+      (click)="activeTab = 'usage'"
+    >
+      Usage & Analytics
+    </button>
+    <button
+      class="tab"
+      [class.active]="activeTab === 'models'"
+      (click)="activeTab = 'models'"
+    >
+      Model Statistics
+    </button>
+    <button
+      class="tab"
+      [class.active]="activeTab === 'users'"
+      (click)="activeTab = 'users'"
+    >
+      User Management
+    </button>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="control-group">
+      <label>Time Period:</label>
+      <select [(ngModel)]="selectedDays" (change)="onDaysChange()">
+        <option [value]="1">Last 24 hours</option>
+        <option [value]="7">Last 7 days</option>
+        <option [value]="30">Last 30 days</option>
+        <option [value]="90">Last 90 days</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content" *ngIf="!isLoading">
+    <!-- Usage Tab -->
+    <div *ngIf="activeTab === 'usage' && usageStats" class="tab-content">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Queries</div>
+          <div class="stat-value">{{ usageStats.queries.total }}</div>
+          <div class="stat-detail">
+            Success Rate: {{ (usageStats.queries.success_rate * 100).toFixed(1) }}%
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Total Tokens</div>
+          <div class="stat-value">{{ usageStats.tokens.total | number }}</div>
+          <div class="stat-detail">
+            Avg per query: {{ usageStats.tokens.average_per_query.toFixed(0) }}
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Total Cost</div>
+          <div class="stat-value">${{ usageStats.cost.total_usd.toFixed(2) }}</div>
+          <div class="stat-detail">
+            Avg per query: ${{ usageStats.cost.average_per_query_usd.toFixed(4) }}
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Avg Latency</div>
+          <div class="stat-value">{{ usageStats.latency.average_ms.toFixed(0) }}ms</div>
+          <div class="stat-detail">
+            P95: {{ usageStats.latency.p95_ms.toFixed(0) }}ms
+          </div>
+        </div>
+      </div>
+
+      <div class="charts">
+        <div class="chart-card">
+          <h3>Queries by Hour</h3>
+          <div class="bar-chart">
+            <div
+              *ngFor="let item of hourlyDistributionArray"
+              class="bar-item"
+            >
+              <div
+                class="bar"
+                [style.height.%]="(item.count / maxHourlyCount) * 100"
+              ></div>
+              <div class="bar-label">{{ getHourLabel(item.hour) }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <h3>Top Users</h3>
+          <div class="users-list">
+            <div *ngFor="let user of topUsers" class="user-item">
+              <div class="user-info">
+                <div class="user-email">{{ user.user_email }}</div>
+                <div class="user-stats">{{ user.query_count }} queries</div>
+              </div>
+              <div class="user-bar">
+                <div
+                  class="user-bar-fill"
+                  [style.width.%]="(user.query_count / topUsers[0].query_count) * 100"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="details-card">
+        <h3>Latency Breakdown</h3>
+        <div class="latency-grid">
+          <div class="latency-item">
+            <div class="latency-label">Average</div>
+            <div class="latency-value">{{ usageStats.latency.average_ms.toFixed(0) }}ms</div>
+          </div>
+          <div class="latency-item">
+            <div class="latency-label">Median</div>
+            <div class="latency-value">{{ usageStats.latency.median_ms.toFixed(0) }}ms</div>
+          </div>
+          <div class="latency-item">
+            <div class="latency-label">P95</div>
+            <div class="latency-value">{{ usageStats.latency.p95_ms.toFixed(0) }}ms</div>
+          </div>
+          <div class="latency-item">
+            <div class="latency-label">P99</div>
+            <div class="latency-value">{{ usageStats.latency.p99_ms.toFixed(0) }}ms</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Models Tab -->
+    <div *ngIf="activeTab === 'models'" class="tab-content">
+      <div class="table-card">
+        <h3>Model Usage Statistics</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Query Count</th>
+              <th>Total Tokens</th>
+              <th>Total Cost</th>
+              <th>Avg Latency</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let model of modelStatsArray">
+              <td>{{ model.name }}</td>
+              <td>{{ model.stats.query_count }}</td>
+              <td>{{ model.stats.total_tokens | number }}</td>
+              <td>${{ model.stats.total_cost.toFixed(2) }}</td>
+              <td>{{ model.stats.avg_latency_ms.toFixed(0) }}ms</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Users Tab -->
+    <div *ngIf="activeTab === 'users'" class="tab-content">
+      <div class="table-card">
+        <h3>User Management</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Current Role</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of allUsers | keyvalue">
+              <td>{{ user.key }}</td>
+              <td>
+                <span class="badge" [class]="'badge-' + user.value">
+                  {{ user.value }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button
+                    class="btn-small"
+                    (click)="assignRole(user.key, 'admin')"
+                    [disabled]="user.value === 'admin'"
+                  >
+                    Make Admin
+                  </button>
+                  <button
+                    class="btn-small"
+                    (click)="assignRole(user.key, 'user')"
+                    [disabled]="user.value === 'user'"
+                  >
+                    Make User
+                  </button>
+                  <button
+                    class="btn-small"
+                    (click)="assignRole(user.key, 'viewer')"
+                    [disabled]="user.value === 'viewer'"
+                  >
+                    Make Viewer
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="loading">
+    <div class="spinner"></div>
+    <p>Loading analytics data...</p>
+  </div>
+</div>

@@ -1,0 +1,68 @@
+// Karma configuration file for CI/CD testing
+
+module.exports = function(config) {
+  config.set({
+    basePath: '',
+    frameworks: ['jasmine', '@angular-devkit/build-angular'],
+    plugins: [
+      require('karma-jasmine'),
+      require('karma-chrome-launcher'),
+      require('karma-jasmine-html-reporter'),
+      require('karma-coverage'),
+      require('@angular-devkit/build-angular/plugins/karma')
+    ],
+    client: {
+      jasmine: {
+        // Jasmine configuration
+        random: false,
+        seed: 42,
+        stopSpecOnExpectationFailure: false
+      },
+      clearContext: false // leave Jasmine Spec Runner output visible in browser
+    },
+    jasmineHtmlReporter: {
+      suppressAll: true // removes the duplicated traces
+    },
+    coverageReporter: {
+      dir: require('path').join(__dirname, './coverage'),
+      subdir: '.',
+      reporters: [
+        { type: 'html' },
+        { type: 'text-summary' },
+        { type: 'lcovonly' }
+      ],
+      check: {
+        global: {
+          statements: 80,
+          branches: 70,
+          functions: 80,
+          lines: 80
+        }
+      }
+    },
+    reporters: ['progress', 'kjhtml', 'coverage'],
+    port: 9876,
+    colors: true,
+    logLevel: config.LOG_INFO,
+    autoWatch: true,
+    browsers: ['Chrome'],
+    customLaunchers: {
+      ChromeHeadlessCI: {
+        base: 'ChromeHeadless',
+        flags: [
+          '--no-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-software-rasterizer',
+          '--disable-extensions'
+        ]
+      }
+    },
+    singleRun: false,
+    restartOnFileChange: true,
+    browserNoActivityTimeout: 60000,
+    browserDisconnectTimeout: 10000,
+    browserDisconnectTolerance: 3,
+    captureTimeout: 60000
+  });
+};
