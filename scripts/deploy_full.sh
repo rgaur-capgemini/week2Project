@@ -10,7 +10,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Configuration (from DEPLOYMENT_PROGRESS_LOG.md)
+# Configuration 
 PROJECT_ID="${PROJECT_ID:-btoproject-486405-486604}"
 REGION="${REGION:-us-central1}"
 ZONE="${ZONE:-us-central1-a}"
