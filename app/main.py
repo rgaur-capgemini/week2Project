@@ -21,7 +21,13 @@ from app.middleware import (
 )
 
 # Import authentication and authorization
-from app.auth.oidc import get_current_user, get_optional_user
+from app.auth.oidc import (
+    get_current_user, 
+    get_optional_user,
+    ensure_user_exists,
+    increment_token_count,
+    get_all_users_token_stats
+)
 from app.auth.rbac import (
     get_current_user_with_role,
     require_permission,
@@ -258,6 +264,13 @@ async def login(request: LoginRequest):
 @app.get("/api/v1/auth/me")
 async def get_me(user: Dict[str, Any] = Depends(get_current_user_with_role)):
     """Get current user information."""
+    # Ensure user exists in Firestore on first access
+    await ensure_user_exists(
+        user_email=user['email'],
+        user_name=user.get('name', ''),
+        user_picture=user.get('picture', '')
+    )
+    
     return {
         "user": user,
         "authenticated": True
@@ -297,6 +310,9 @@ async def chat_query(
     """
     start_time = time.time()
     user_id = user['email']
+    
+    # Track token usage for this API call
+    await increment_token_count(user_id)
     
     try:
         # Create or get session
@@ -1074,6 +1090,23 @@ async def list_users(
     """List all users and their roles."""
     users = rbac_manager.list_all_users()
     return {"users": users}
+
+
+@app.get("/api/v1/admin/token-usage")
+async def get_token_usage(
+    user: Dict[str, Any] = Depends(get_current_user),
+    _auth: None = Depends(require_role(Role.ADMIN))
+):
+    """Get token usage statistics for all users (Admin only)."""
+    stats = await get_all_users_token_stats()
+    
+    total_tokens = sum(s['token_count'] for s in stats)
+    
+    return {
+        "total_tokens": total_tokens,
+        "total_users": len(stats),
+        "users": stats
+    }
 
 
 # ============================================================================

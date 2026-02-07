@@ -57,12 +57,18 @@ spec:
           value: "true"
         - name: VERTEX_LOCATION
           value: "us-central1"
+        - name: VERTEX_INDEX_ID
+          value: "4892433118440456192"
+        - name: VERTEX_INDEX_ENDPOINT
+          value: "projects/382685100652/locations/us-central1/indexEndpoints/7605324128349847552"
+        - name: DEPLOYED_INDEX_ID
+          value: "chatbot_rag_deployed_1770440353081"
         - name: MODEL_VARIANT
           value: "gemini-2.0-flash-001"
         - name: EMBEDDING_MODEL
           value: "text-embedding-004"
         - name: GCS_BUCKET
-          value: "btoproject-486405-rag-documents"
+          value: "btoproject-486405-486604-rag-documents"
         - name: ADMIN_EMAILS
           valueFrom:
             secretKeyRef:
