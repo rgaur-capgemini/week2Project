@@ -6,9 +6,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-# Use npm install instead of npm ci since package-lock.json may not be available
-RUN npm install --production --legacy-peer-deps
+# Install ALL dependencies (including dev deps) for building
+# Dev dependencies include @angular/cli which is needed for 'ng build'
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
