@@ -387,6 +387,16 @@ steps:
       - 'spdx-json=backend-sbom.json'
     waitFor: ['build-backend']
 
+  # Step 6a: Configure Docker authentication for Artifact Registry
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'auth-backend'
+    args:
+      - 'auth'
+      - 'configure-docker'
+      - 'us-central1-docker.pkg.dev'
+      - '--quiet'
+    waitFor: ['generate-sbom-backend']
+
   # Step 7: Push backend image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-backend'
@@ -394,7 +404,7 @@ steps:
       - 'push'
       - '--all-tags'
       - '${_ARTIFACT_REGISTRY}/backend'
-    waitFor: ['generate-sbom-backend']
+    waitFor: ['auth-backend']
 
   # Step 8: Install frontend dependencies
   # Use npm install instead of npm ci since package-lock.json may not exist
@@ -509,6 +519,16 @@ steps:
       - 'spdx-json=frontend-sbom.json'
     waitFor: ['build-frontend']
 
+  # Step 16a: Configure Docker authentication for Artifact Registry
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'auth-frontend'
+    args:
+      - 'auth'
+      - 'configure-docker'
+      - 'us-central1-docker.pkg.dev'
+      - '--quiet'
+    waitFor: ['generate-sbom-frontend']
+
   # Step 17: Push frontend image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-frontend'
@@ -516,7 +536,7 @@ steps:
       - 'push'
       - '--all-tags'
       - '${_ARTIFACT_REGISTRY}/frontend'
-    waitFor: ['generate-sbom-frontend']
+    waitFor: ['auth-frontend']
 
   # Step 18: Deploy backend and frontend to GKE
   - name: 'gcr.io/cloud-builders/kubectl'
