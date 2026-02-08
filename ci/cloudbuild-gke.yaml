@@ -364,18 +364,18 @@ steps:
       - '.'
     waitFor: ['sonar-backend']
 
-  # Step 5: Scan Docker image for vulnerabilities
+  # Step 5: Scan Docker image for vulnerabilities (DISABLED - requires On-Demand Scanning API)
   # Note: --location must be a multi-region (us, europe, asia), not a specific region like us-central1
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'scan-backend-image'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        gcloud artifacts docker images scan ${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA \
-          --location=us \
-          --project=${_PROJECT_ID}
-    waitFor: ['build-backend']
+  # - name: 'gcr.io/cloud-builders/gcloud'
+  #   id: 'scan-backend-image'
+  #   entrypoint: 'bash'
+  #   args:
+  #     - '-c'
+  #     - |
+  #       gcloud artifacts docker images scan ${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA \
+  #         --location=us \
+  #         --project=${_PROJECT_ID}
+  #   waitFor: ['build-backend']
 
   # Step 6: Generate SBOM for backend
   - name: 'anchore/syft:latest'
@@ -394,7 +394,7 @@ steps:
       - 'push'
       - '--all-tags'
       - '${_ARTIFACT_REGISTRY}/backend'
-    waitFor: ['scan-backend-image', 'generate-sbom-backend']
+    waitFor: ['generate-sbom-backend']
 
   # Step 8: Install frontend dependencies
   # Use npm install instead of npm ci since package-lock.json may not exist
@@ -487,17 +487,17 @@ steps:
       - './frontend'
     waitFor: ['frontend-build']
 
-  # Step 15: Scan frontend Docker image for vulnerabilities
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'scan-frontend-image'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        gcloud artifacts docker images scan ${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA \
-          --location=us \
-          --project=${_PROJECT_ID}
-    waitFor: ['build-frontend']
+  # Step 15: Scan frontend Docker image for vulnerabilities (DISABLED - requires On-Demand Scanning API)
+  # - name: 'gcr.io/cloud-builders/gcloud'
+  #   id: 'scan-frontend-image'
+  #   entrypoint: 'bash'
+  #   args:
+  #     - '-c'
+  #     - |
+  #       gcloud artifacts docker images scan ${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA \
+  #         --location=us \
+  #         --project=${_PROJECT_ID}
+  #   waitFor: ['build-frontend']
 
   # Step 16: Generate SBOM for frontend
   - name: 'anchore/syft:latest'
@@ -516,7 +516,7 @@ steps:
       - 'push'
       - '--all-tags'
       - '${_ARTIFACT_REGISTRY}/frontend'
-    waitFor: ['scan-frontend-image', 'generate-sbom-frontend']
+    waitFor: ['generate-sbom-frontend']
 
   # Step 18: Deploy backend and frontend to GKE
   - name: 'gcr.io/cloud-builders/kubectl'
