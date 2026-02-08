@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-config
+  labels:
+    app: rag-chatbot
+data:
+  # GCP Configuration
+  PROJECT_ID: "btoproject-486405-486604"
+  REGION: "us-central1"
+  VERTEX_LOCATION: "us-central1"
+  
+  # Environment
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  
+  # Redis Configuration
+  REDIS_HOST: "10.168.174.3"
+  REDIS_PORT: "6379"
+  REDIS_DB_HISTORY: "0"
+  REDIS_DB_ANALYTICS: "1"
+  
+  # Model Configuration
+  EMBEDDING_MODEL: "text-embedding-004"
+  GENERATION_MODEL: "gemini-2.0-flash-001"
+  CHUNK_SIZE: "1000"
+  CHUNK_OVERLAP: "200"
+  TOP_K: "5"
+  RERANK_TOP_K: "3"
+  
+  # API Configuration
+  MAX_FILE_SIZE_MB: "50"
+  ALLOWED_EXTENSIONS: ".pdf,.txt,.docx,.md"
+  
+  # Rate Limiting
+  RATE_LIMIT_PER_MINUTE: "60"
+  RATE_LIMIT_PER_HOUR: "1000"

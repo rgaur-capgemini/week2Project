@@ -1,0 +1,94 @@
+# Complete CI/CD Pipeline for GKE Deployment
+# This pipeline builds, tests, scans, and deploys both backend and frontend to GKE
+
+substitutions:
+  _PROJECT_ID: 'btoproject-486405-486604'
+  _REGION: 'us-central1'
+  _CLUSTER_NAME: 'chatbot-rag-cluster'
+  _CLUSTER_ZONE: 'us-central1-a'
+  _BACKEND_IMAGE: 'gcr.io/${_PROJECT_ID}/chatbot-backend'
+  _FRONTEND_IMAGE: 'gcr.io/${_PROJECT_ID}/chatbot-frontend'
+
+timeout: 3600s
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  # Backend: Build → Test → Scan → Push
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend'
+    args: ['build', '-t', '${_BACKEND_IMAGE}:$COMMIT_SHA', '-t', '${_BACKEND_IMAGE}:latest', '.']
+    waitFor: ['-']
+
+  - name: '${_BACKEND_IMAGE}:$COMMIT_SHA'
+    id: 'test-backend'
+    entrypoint: 'pytest'
+    args: ['tests/', '--cov=app', '--cov-report=xml', '-v']
+    env: ['ENVIRONMENT=test']
+    waitFor: ['build-backend']
+
+  - name: 'aquasec/trivy:latest'
+    id: 'scan-backend'
+    args: ['image', '--exit-code', '0', '--severity', 'HIGH,CRITICAL', '${_BACKEND_IMAGE}:$COMMIT_SHA']
+    waitFor: ['build-backend']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-backend'
+    args: ['push', '--all-tags', '${_BACKEND_IMAGE}']
+    waitFor: ['test-backend', 'scan-backend']
+
+  # Frontend: Build → Scan → Push
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend'
+    args: ['build', '-t', '${_FRONTEND_IMAGE}:$COMMIT_SHA', '-t', '${_FRONTEND_IMAGE}:latest', '-f', 'frontend/Dockerfile', './frontend']
+    waitFor: ['-']
+
+  - name: 'aquasec/trivy:latest'
+    id: 'scan-frontend'
+    args: ['image', '--exit-code', '0', '--severity', 'HIGH,CRITICAL', '${_FRONTEND_IMAGE}:$COMMIT_SHA']
+    waitFor: ['build-frontend']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-frontend'
+    args: ['push', '--all-tags', '${_FRONTEND_IMAGE}']
+    waitFor: ['scan-frontend']
+
+  # Deploy to GKE
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'get-credentials'
+    args: ['container', 'clusters', 'get-credentials', '${_CLUSTER_NAME}', '--zone=${_CLUSTER_ZONE}', '--project=${_PROJECT_ID}']
+    waitFor: ['push-backend', 'push-frontend']
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'deploy-backend'
+    args: ['set', 'image', 'deployment/chatbot-backend', 'backend=${_BACKEND_IMAGE}:$COMMIT_SHA']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_CLUSTER_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+    waitFor: ['get-credentials']
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'deploy-frontend'
+    args: ['set', 'image', 'deployment/chatbot-frontend', 'frontend=${_FRONTEND_IMAGE}:$COMMIT_SHA']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_CLUSTER_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+    waitFor: ['get-credentials']
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'rollout-status'
+    args: ['rollout', 'status', 'deployment/chatbot-backend', 'deployment/chatbot-frontend', '--timeout=600s']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_CLUSTER_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+    waitFor: ['deploy-backend', 'deploy-frontend']
+
+images:
+  - '${_BACKEND_IMAGE}:$COMMIT_SHA'
+  - '${_BACKEND_IMAGE}:latest'
+  - '${_FRONTEND_IMAGE}:$COMMIT_SHA'
+  - '${_FRONTEND_IMAGE}:latest'
+
+tags: ['gke-deployment', 'chatbot-rag', '$COMMIT_SHA']
