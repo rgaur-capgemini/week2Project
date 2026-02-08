@@ -33,7 +33,7 @@ spec:
       
       containers:
       - name: rag-frontend
-        image: gcr.io/btoproject-486405-486604/rag-frontend:latest
+        image: us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest
         imagePullPolicy: Always
         
         ports:
@@ -120,4 +120,4 @@ metadata:
   name: rag-frontend
   namespace: default
   annotations:
-    iam.gke.io/gcp-service-account: rag-frontend-sa@btoproject-486405-486604.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: chatbot-rag-frontend@btoproject-486405-486604.iam.gserviceaccount.com

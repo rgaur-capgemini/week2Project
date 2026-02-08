@@ -4,10 +4,11 @@
 substitutions:
   _PROJECT_ID: 'btoproject-486405-486604'
   _REGION: 'us-central1'
-  _CLUSTER_NAME: 'chatbot-rag-cluster'
+  _GKE_CLUSTER: 'chatbot-rag-gke'
   _CLUSTER_ZONE: 'us-central1-a'
-  _BACKEND_IMAGE: 'gcr.io/${_PROJECT_ID}/chatbot-backend'
-  _FRONTEND_IMAGE: 'gcr.io/${_PROJECT_ID}/chatbot-frontend'
+  _ARTIFACT_REGISTRY: 'us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images'
+  _BACKEND_IMAGE: '${_ARTIFACT_REGISTRY}/backend'
+  _FRONTEND_IMAGE: '${_ARTIFACT_REGISTRY}/frontend'
 
 timeout: 3600s
 
@@ -58,32 +59,40 @@ steps:
   # Deploy to GKE
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'get-credentials'
-    args: ['container', 'clusters', 'get-credentials', '${_CLUSTER_NAME}', '--zone=${_CLUSTER_ZONE}', '--project=${_PROJECT_ID}']
+    args: ['container', 'clusters', 'get-credentials', '${_GKE_CLUSTER}', '--zone=${_CLUSTER_ZONE}', '--project=${_PROJECT_ID}']
     waitFor: ['push-backend', 'push-frontend']
 
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'deploy-backend'
-    args: ['set', 'image', 'deployment/chatbot-backend', 'backend=${_BACKEND_IMAGE}:$COMMIT_SHA']
+    args: ['set', 'image', 'deployment/rag-backend', 'rag-backend=${_BACKEND_IMAGE}:$COMMIT_SHA', '-n', 'default']
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=${_CLUSTER_ZONE}'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
     waitFor: ['get-credentials']
 
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'deploy-frontend'
-    args: ['set', 'image', 'deployment/chatbot-frontend', 'frontend=${_FRONTEND_IMAGE}:$COMMIT_SHA']
+    args: ['set', 'image', 'deployment/rag-frontend', 'rag-frontend=${_FRONTEND_IMAGE}:$COMMIT_SHA', '-n', 'default']
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=${_CLUSTER_ZONE}'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
     waitFor: ['get-credentials']
 
   - name: 'gcr.io/cloud-builders/kubectl'
-    id: 'rollout-status'
-    args: ['rollout', 'status', 'deployment/chatbot-backend', 'deployment/chatbot-frontend', '--timeout=600s']
+    id: 'rollout-status-backend'
+    args: ['rollout', 'status', 'deployment/rag-backend', '-n', 'default', '--timeout=600s']
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=${_CLUSTER_ZONE}'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
-    waitFor: ['deploy-backend', 'deploy-frontend']
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+    waitFor: ['deploy-backend']
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'rollout-status-frontend'
+    args: ['rollout', 'status', 'deployment/rag-frontend', '-n', 'default', '--timeout=600s']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_CLUSTER_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+    waitFor: ['deploy-frontend']
 
 images:
   - '${_BACKEND_IMAGE}:$COMMIT_SHA'

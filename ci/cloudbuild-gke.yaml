@@ -16,7 +16,7 @@ substitutions:
   _GKE_ZONE: 'us-central1-a'
   _BACKEND_IMAGE: 'gcr.io/${_PROJECT_ID}/rag-backend'
   _FRONTEND_IMAGE: 'gcr.io/${_PROJECT_ID}/rag-frontend'
-  _SERVICE_ACCOUNT: 'rag-backend-sa@${_PROJECT_ID}.iam.gserviceaccount.com'
+  _SERVICE_ACCOUNT: 'chatbot-rag-backend@${_PROJECT_ID}.iam.gserviceaccount.com'
 
 steps:
   # ==================== Backend Build ====================

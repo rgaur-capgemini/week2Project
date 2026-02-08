@@ -34,7 +34,7 @@ spec:
       
       containers:
       - name: rag-backend
-        image: gcr.io/btoproject-486405-486604/rag-backend:latest
+        image: us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest
         imagePullPolicy: Always
         
         ports:
@@ -209,7 +209,7 @@ metadata:
   name: rag-backend
   namespace: default
   annotations:
-    iam.gke.io/gcp-service-account: rag-backend-sa@btoproject-486405-486604.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: chatbot-rag-backend@btoproject-486405-486604.iam.gserviceaccount.com
 
 ---
 # Backend Config for Load Balancer
