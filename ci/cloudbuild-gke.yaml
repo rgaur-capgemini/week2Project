@@ -403,10 +403,12 @@ steps:
   # Step 7: Push backend image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-backend'
+    entrypoint: 'bash'
     args:
-      - 'push'
-      - '--all-tags'
-      - '${_ARTIFACT_REGISTRY}/backend'
+      - '-c'
+      - |
+        docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:$COMMIT_SHA
+        docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest
     waitFor: ['auth-backend']
 
   # Step 8: Install frontend dependencies
@@ -535,10 +537,17 @@ steps:
   # Step 17: Push frontend image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-frontend'
+    entrypoint: 'bash'
     args:
-      - 'push'
-      - '--all-tags'
-      - '${_ARTIFACT_REGISTRY}/frontend'
+      - '-c'
+      - |
+        echo "===== Debugging Docker images ====="
+        docker images | grep frontend
+        echo "===== Pushing with full path ====="
+        echo "Registry: ${_ARTIFACT_REGISTRY}"
+        echo "Commit SHA: $COMMIT_SHA"
+        docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:$COMMIT_SHA
+        docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest
     waitFor: ['auth-frontend']
 
   # Step 18: Deploy backend and frontend to GKE
