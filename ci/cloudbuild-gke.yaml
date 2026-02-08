@@ -407,6 +407,10 @@ steps:
     args:
       - '-c'
       - |
+        echo "===== Retagging backend images with full registry path ====="
+        docker tag chatbot-rag-images/backend:$COMMIT_SHA us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:$COMMIT_SHA
+        docker tag chatbot-rag-images/backend:latest us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest
+        echo "===== Pushing to Artifact Registry ====="
         docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:$COMMIT_SHA
         docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest
     waitFor: ['auth-backend']
@@ -541,11 +545,10 @@ steps:
     args:
       - '-c'
       - |
-        echo "===== Debugging Docker images ====="
-        docker images | grep frontend
-        echo "===== Pushing with full path ====="
-        echo "Registry: ${_ARTIFACT_REGISTRY}"
-        echo "Commit SHA: $COMMIT_SHA"
+        echo "===== Retagging images with full registry path ====="
+        docker tag chatbot-rag-images/frontend:$COMMIT_SHA us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:$COMMIT_SHA
+        docker tag chatbot-rag-images/frontend:latest us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest
+        echo "===== Pushing to Artifact Registry ====="
         docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:$COMMIT_SHA
         docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest
     waitFor: ['auth-frontend']
