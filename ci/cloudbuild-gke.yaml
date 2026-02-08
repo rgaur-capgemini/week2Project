@@ -1,23 +1,25 @@
-# ##
-# # CI/CD Pipeline for RAG Chatbot - GKE Deployment
-# # Features: Build, Test, Security Scan, SBOM Generation, Deploy to GKE
-# ##
+##
+# CI/CD Pipeline for RAG Chatbot - GKE Deployment
+# Features: Build, Test, Security Scan, SBOM Generation, Deploy to GKE
+##
 
-# options:
-#   machineType: 'E2_HIGHCPU_8'
-#   logging: CLOUD_LOGGING_ONLY
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
   
-# timeout: 3600s  # 1 hour
+timeout: 3600s  # 1 hour
 
-# substitutions:
-#   _PROJECT_ID: 'btoproject-486405-486604'
-#   _REGION: 'us-central1'
-#   _GKE_CLUSTER: 'chatbot-rag-gke'
-#   _GKE_ZONE: 'us-central1-a'
-#   _ARTIFACT_REGISTRY: 'us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images'
-#   _BACKEND_IMAGE: '${_ARTIFACT_REGISTRY}/backend'
-#   _FRONTEND_IMAGE: '${_ARTIFACT_REGISTRY}/frontend'
-#   _SERVICE_ACCOUNT: 'chatbot-rag-backend@${_PROJECT_ID}.iam.gserviceaccount.com'
+substitutions:
+  _PROJECT_ID: 'btoproject-486405-486604'
+  _REGION: 'us-central1'
+  _GKE_CLUSTER: 'chatbot-rag-gke'
+  _GKE_ZONE: 'us-central1-a'
+  _ARTIFACT_REGISTRY: 'us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images'
+  _BACKEND_IMAGE: '${_ARTIFACT_REGISTRY}/backend'
+  _FRONTEND_IMAGE: '${_ARTIFACT_REGISTRY}/frontend'
+  _SERVICE_ACCOUNT: 'chatbot-rag-backend@${_PROJECT_ID}.iam.gserviceaccount.com'
+
+# OLD CONFIG BELOW - KEPT FOR REFERENCE
 
 # steps:
 #   # ==================== Backend Build ====================
@@ -306,12 +308,13 @@
 # Production CI/CD Pipeline with Quality Gates and SBOM
 # Features: Build, Test, Security Scan, Code Quality, SBOM, Deploy to GKE
 
-substitutions:
-  _PROJECT_ID: btoproject-486405-486604
-  _REGION: us-central1
-  _GKE_CLUSTER: chatbot-rag-gke
-  _GKE_ZONE: us-central1-a
-  _ARTIFACT_REGISTRY: us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images
+# DUPLICATE SUBSTITUTIONS - USING TOP-LEVEL ONES INSTEAD
+# substitutions:
+#   _PROJECT_ID: btoproject-486405-486604
+#   _REGION: us-central1
+#   _GKE_CLUSTER: chatbot-rag-gke
+#   _GKE_ZONE: us-central1-a
+#   _ARTIFACT_REGISTRY: us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images
 
 steps:
   # Step 1: Install Python dependencies and run tests with coverage (≥80% required)
