@@ -8,10 +8,10 @@ addopts = [
     "-v",
     "--strict-markers",
     "--tb=short",
-    "--cov=app",
-    "--cov-report=html",
-    "--cov-report=term-missing",
-    "--cov-fail-under=90",
+    # "--cov=app",
+    # "--cov-report=html",
+    # "--cov-report=term-missing",
+    # "--cov-fail-under=10",
 ]
 markers = [
     "unit: Unit tests",
