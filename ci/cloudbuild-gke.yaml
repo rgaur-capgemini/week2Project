@@ -12,10 +12,11 @@ timeout: 3600s  # 1 hour
 substitutions:
   _PROJECT_ID: 'btoproject-486405-486604'
   _REGION: 'us-central1'
-  _GKE_CLUSTER: 'rag-chatbot-cluster'
+  _GKE_CLUSTER: 'chatbot-rag-gke'
   _GKE_ZONE: 'us-central1-a'
-  _BACKEND_IMAGE: 'gcr.io/${_PROJECT_ID}/rag-backend'
-  _FRONTEND_IMAGE: 'gcr.io/${_PROJECT_ID}/rag-frontend'
+  _ARTIFACT_REGISTRY: 'us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images'
+  _BACKEND_IMAGE: '${_ARTIFACT_REGISTRY}/backend'
+  _FRONTEND_IMAGE: '${_ARTIFACT_REGISTRY}/frontend'
   _SERVICE_ACCOUNT: 'chatbot-rag-backend@${_PROJECT_ID}.iam.gserviceaccount.com'
 
 steps:
