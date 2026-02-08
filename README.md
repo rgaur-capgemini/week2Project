@@ -2,7 +2,7 @@
 # Week 1 — Production RAG System (Cloud Run + Vertex AI)
 
 **Version:** 2.0.0 (Production-Grade)  
-**Project:** btoproject-486405  
+**Project:** btoproject-486405-486604  
 **Region:** us-central1  
 **Status:** Ready
 
@@ -81,7 +81,7 @@ Complete production-grade Retrieval-Augmented Generation (RAG) service with **fu
 cd week1_btoproject_cloudrun_full
 
 # Set GCP project
-gcloud config set project btoproject-486405
+gcloud config set project btoproject-486405-486604
 
 # Run production setup
 chmod +x scripts/setup_production.sh
@@ -175,7 +175,7 @@ MODEL_VARIANT=gemini-2.0-flash-001
 # Storage Configuration
 USE_FIRESTORE=true
 FIRESTORE_COLLECTION=rag_chunks
-GCS_BUCKET=btoproject-486405-rag-documents
+GCS_BUCKET=btoproject-486405-486604-rag-documents
 
 # Application Limits
 MAX_FILE_SIZE=10485760           # 10MB
