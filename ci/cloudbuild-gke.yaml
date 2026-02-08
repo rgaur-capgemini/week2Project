@@ -403,7 +403,6 @@ steps:
     args:
       - '-c'
       - |
-        cd frontend
         if [ ! -f package.json ]; then
           echo "ERROR: package.json not found in frontend directory"
           exit 1
@@ -415,6 +414,7 @@ steps:
           echo "Using npm install (no package-lock.json found)"
           npm install
         fi
+    dir: 'frontend'
     waitFor: ['-']
 
   # Step 9: Run frontend tests with coverage (≥80% required)
