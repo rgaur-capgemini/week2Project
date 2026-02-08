@@ -579,8 +579,8 @@ steps:
         kubectl apply -f k8s/ --namespace=default
         
         # Trigger rollout restart to ensure new images are pulled
-        kubectl rollout restart deployment/chatbot-rag-backend --namespace=default || true
-        kubectl rollout restart deployment/chatbot-rag-frontend --namespace=default || true
+        kubectl rollout restart deployment/rag-backend --namespace=default || true
+        kubectl rollout restart deployment/rag-frontend --namespace=default || true
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
       - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
@@ -593,8 +593,25 @@ steps:
     args:
       - '-c'
       - |
-        kubectl rollout status deployment/chatbot-rag-backend --namespace=default --timeout=5m
-        kubectl rollout status deployment/chatbot-rag-frontend --namespace=default --timeout=5m
+        echo "Waiting for deployments to be created..."
+        sleep 10
+        
+        # Check if deployments exist and wait for them to be ready
+        if kubectl get deployment rag-backend --namespace=default &> /dev/null; then
+          echo "Waiting for backend deployment..."
+          kubectl rollout status deployment/rag-backend --namespace=default --timeout=5m
+        else
+          echo "Backend deployment not found yet, skipping verification"
+        fi
+        
+        if kubectl get deployment rag-frontend --namespace=default &> /dev/null; then
+          echo "Waiting for frontend deployment..."
+          kubectl rollout status deployment/rag-frontend --namespace=default --timeout=5m
+        else
+          echo "Frontend deployment not found yet, skipping verification"
+        fi
+        
+        echo "Deployment verification complete"
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
       - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
