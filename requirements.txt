@@ -1,12 +1,11 @@
 
 # FastAPI and web server
-fastapi
-uvicorn[standard]
-pydantic
-python-multipart
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.0
+python-multipart==0.0.12
 
 # Document processing
-bs4==0.0.2
 beautifulsoup4==4.12.3
 PyPDF2==3.0.1
 python-docx==1.1.0
@@ -18,25 +17,20 @@ opentelemetry-exporter-gcp-trace==1.6.0
 opentelemetry-exporter-gcp-monitoring==1.6.0a0
 
 # Google Cloud Platform
-google-cloud-aiplatform
-google-cloud-storage
-google-cloud-logging
-google-cloud-firestore
-google-cloud-secret-manager
-google-cloud-dlp  # PII Detection
+google-cloud-aiplatform==1.70.0
+google-cloud-storage==2.18.2
+google-cloud-logging==3.11.2
+google-cloud-firestore==2.18.0
+google-cloud-secret-manager==2.20.2
+google-cloud-dlp==3.32.0  # PII Detection
 
 # Vector operations and ML
 numpy==1.26.4
-scipy==1.12.0
-
-# RAG evaluation
-ragas
-datasets
 
 # LangGraph for stateful RAG workflows
-langgraph
-langchain-core
-langchain-google-vertexai
+langgraph==0.2.28
+langchain-core==0.3.15
+langchain-google-vertexai==2.0.5
 
 # Authentication and Authorization
 PyJWT==2.8.0
