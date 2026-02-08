@@ -27,9 +27,9 @@ import { AuthService } from '../services/auth.service';
       
       <span class="user-info">
         <mat-icon>account_circle</mat-icon>
-        {{ authService.currentUser?.email }}
+        {{ authService.currentUser.email }}
         <span class="role-badge" [class.admin]="authService.isAdmin">
-          {{ authService.currentUser?.role }}
+          {{ authService.currentUser.role }}
         </span>
       </span>
       

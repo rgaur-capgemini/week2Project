@@ -74,6 +74,10 @@ class Config:
         self.REDIS_DB_ANALYTICS = int(os.getenv("REDIS_DB_ANALYTICS", "1"))
         # Optional Redis password: prefer Secret Manager, fallback to env var
         self.REDIS_PASSWORD = self.get_secret("redis-password") or os.getenv("REDIS_PASSWORD", "")
+        
+        # Admin Configuration
+        admin_emails_str = os.getenv("ADMIN_EMAILS", "")
+        self.ADMIN_EMAILS = [email.strip() for email in admin_emails_str.split(",") if email.strip()]
     
     @property
     def secret_client(self):
@@ -161,3 +165,6 @@ class Config:
 
 # Global configuration instance
 config = Config()
+
+# Convenience exports for commonly accessed configs
+ADMIN_EMAILS = config.ADMIN_EMAILS
