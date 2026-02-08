@@ -380,15 +380,15 @@ steps:
   #         --project=${_PROJECT_ID}
   #   waitFor: ['build-backend']
 
-  # Step 6: Generate SBOM for backend
-  - name: 'anchore/syft:latest'
-    id: 'generate-sbom-backend'
-    args:
-      - 'packages'
-      - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
-      - '-o'
-      - 'spdx-json=backend-sbom.json'
-    waitFor: ['build-backend']
+  # Step 6: Generate SBOM for backend (DISABLED - may interfere with image tags)
+  # - name: 'anchore/syft:latest'
+  #   id: 'generate-sbom-backend'
+  #   args:
+  #     - 'packages'
+  #     - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
+  #     - '-o'
+  #     - 'spdx-json=backend-sbom.json'
+  #   waitFor: ['build-backend']
 
   # Step 6a: Configure Docker authentication for Artifact Registry
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -398,7 +398,7 @@ steps:
       - 'configure-docker'
       - 'us-central1-docker.pkg.dev'
       - '--quiet'
-    waitFor: ['generate-sbom-backend']
+    waitFor: ['build-backend']
 
   # Step 7: Push backend image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
@@ -512,15 +512,15 @@ steps:
   #         --project=${_PROJECT_ID}
   #   waitFor: ['build-frontend']
 
-  # Step 16: Generate SBOM for frontend
-  - name: 'anchore/syft:latest'
-    id: 'generate-sbom-frontend'
-    args:
-      - 'packages'
-      - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
-      - '-o'
-      - 'spdx-json=frontend-sbom.json'
-    waitFor: ['build-frontend']
+  # Step 16: Generate SBOM for frontend (DISABLED - may interfere with image tags)
+  # - name: 'anchore/syft:latest'
+  #   id: 'generate-sbom-frontend'
+  #   args:
+  #     - 'packages'
+  #     - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
+  #     - '-o'
+  #     - 'spdx-json=frontend-sbom.json'
+  #   waitFor: ['build-frontend']
 
   # Step 16a: Configure Docker authentication for Artifact Registry
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -530,7 +530,7 @@ steps:
       - 'configure-docker'
       - 'us-central1-docker.pkg.dev'
       - '--quiet'
-    waitFor: ['generate-sbom-frontend']
+    waitFor: ['build-frontend']
 
   # Step 17: Push frontend image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
@@ -595,14 +595,14 @@ steps:
         python scripts/smoke_tests.py
     waitFor: ['verify-deployment']
 
-  # Step 20: Upload SBOMs to Cloud Storage (backend and frontend)
-  - name: 'gcr.io/cloud-builders/gsutil'
-    id: 'upload-sbom'
-    args:
-      - 'cp'
-      - '*-sbom.json'
-      - 'gs://${_PROJECT_ID}-sbom/$BUILD_ID/'
-    waitFor: ['generate-sbom-backend', 'generate-sbom-frontend']
+  # Step 20: Upload SBOMs to Cloud Storage (backend and frontend) - DISABLED
+  # - name: 'gcr.io/cloud-builders/gsutil'
+  #   id: 'upload-sbom'
+  #   args:
+  #     - 'cp'
+  #     - '*-sbom.json'
+  #     - 'gs://${_PROJECT_ID}-sbom/$BUILD_ID/'
+  #   waitFor: ['generate-sbom-backend', 'generate-sbom-frontend']
 
 # Store images (backend and frontend)
 images:
