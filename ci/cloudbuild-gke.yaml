@@ -569,14 +569,14 @@ steps:
           --zone=${_GKE_ZONE} \
           --project=${_PROJECT_ID}
         
-        # Replace image tags in deployment.yaml with commit SHA (handle both old and new project IDs)
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/backend:latest|${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA|g" infra/kubernetes/deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest|${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA|g" infra/kubernetes/deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/frontend:latest|${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA|g" infra/kubernetes/deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest|${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA|g" infra/kubernetes/deployment.yaml
+        # Replace image tags in deployment files with commit SHA (handle both old and new project IDs)
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/backend:latest|${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest|${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/frontend:latest|${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest|${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
         
         # Apply all Kubernetes resources
-        kubectl apply -f infra/kubernetes/deployment.yaml --namespace=default
+        kubectl apply -f k8s/ --namespace=default
         
         # Trigger rollout restart to ensure new images are pulled
         kubectl rollout restart deployment/chatbot-rag-backend --namespace=default || true
