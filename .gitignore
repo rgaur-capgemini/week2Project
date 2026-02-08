@@ -57,6 +57,7 @@ frontend/dist/
 frontend/.angular/cache/
 *.tsbuildinfo
 
-# GCP
-*.json
+# GCP - only ignore service account keys, not all JSON files
+*-key.json
+*-service-account.json
 !cloudbuild.yaml
