@@ -28,8 +28,9 @@ spec:
     spec:
       serviceAccountName: rag-frontend
       
-      nodeSelector:
-        workload: frontend
+      # Node selector removed - pods can schedule on any available nodes
+      # nodeSelector:
+      #   workload: frontend
       
       containers:
       - name: rag-frontend

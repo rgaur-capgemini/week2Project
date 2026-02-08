@@ -28,9 +28,9 @@ spec:
     spec:
       serviceAccountName: rag-backend
       
-      # Node selector for backend pool
-      nodeSelector:
-        workload: backend
+      # Node selector removed - pods can schedule on any available nodes
+      # nodeSelector:
+      #   workload: backend
       
       containers:
       - name: rag-backend
