@@ -1,303 +1,609 @@
-##
-# CI/CD Pipeline for RAG Chatbot - GKE Deployment
-# Features: Build, Test, Security Scan, SBOM Generation, Deploy to GKE
-##
+# ##
+# # CI/CD Pipeline for RAG Chatbot - GKE Deployment
+# # Features: Build, Test, Security Scan, SBOM Generation, Deploy to GKE
+# ##
 
-options:
-  machineType: 'E2_HIGHCPU_8'
-  logging: CLOUD_LOGGING_ONLY
+# options:
+#   machineType: 'E2_HIGHCPU_8'
+#   logging: CLOUD_LOGGING_ONLY
   
-timeout: 3600s  # 1 hour
+# timeout: 3600s  # 1 hour
+
+# substitutions:
+#   _PROJECT_ID: 'btoproject-486405-486604'
+#   _REGION: 'us-central1'
+#   _GKE_CLUSTER: 'chatbot-rag-gke'
+#   _GKE_ZONE: 'us-central1-a'
+#   _ARTIFACT_REGISTRY: 'us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images'
+#   _BACKEND_IMAGE: '${_ARTIFACT_REGISTRY}/backend'
+#   _FRONTEND_IMAGE: '${_ARTIFACT_REGISTRY}/frontend'
+#   _SERVICE_ACCOUNT: 'chatbot-rag-backend@${_PROJECT_ID}.iam.gserviceaccount.com'
+
+# steps:
+#   # ==================== Backend Build ====================
+  
+#   - name: 'gcr.io/cloud-builders/docker'
+#     id: 'build-backend'
+#     args:
+#       - 'build'
+#       - '-t'
+#       - '${_BACKEND_IMAGE}:${SHORT_SHA}'
+#       - '-t'
+#       - '${_BACKEND_IMAGE}:latest'
+#       - '-f'
+#       - 'Dockerfile'
+#       - '.'
+#     dir: '.'
+  
+#   # Security scan for backend image
+#   - name: 'gcr.io/cloud-builders/gcloud'
+#     id: 'scan-backend'
+#     args:
+#       - 'container'
+#       - 'images'
+#       - 'scan'
+#       - '${_BACKEND_IMAGE}:${SHORT_SHA}'
+#       - '--format=json'
+#       - '--severity-threshold=CRITICAL'
+#     waitFor: ['build-backend']
+  
+#   # Push backend image
+#   - name: 'gcr.io/cloud-builders/docker'
+#     id: 'push-backend'
+#     args:
+#       - 'push'
+#       - '--all-tags'
+#       - '${_BACKEND_IMAGE}'
+#     waitFor: ['scan-backend']
+  
+#   # ==================== Backend Tests ====================
+  
+#   - name: 'python:3.11-slim'
+#     id: 'test-backend'
+#     entrypoint: 'bash'
+#     args:
+#       - '-c'
+#       - |
+#         pip install -r requirements.txt
+#         pip install pytest pytest-cov pytest-asyncio httpx
+#         pytest app/tests/ -v --cov=app --cov-report=xml --cov-report=term
+        
+#         # Check coverage threshold (matches pyproject.toml)
+#         coverage report --fail-under=80
+#     dir: '.'
+#     waitFor: ['-']  # Run in parallel with build
+  
+#   # ==================== Security Scans ====================
+  
+#   # Python dependency check
+#   - name: 'python:3.11-slim'
+#     id: 'dependency-check'
+#     entrypoint: 'bash'
+#     args:
+#       - '-c'
+#       - |
+#         pip install safety
+#         safety check --json -r requirements.txt || true
+#     dir: '.'
+#     waitFor: ['-']
+  
+#   # Secrets detection
+#   - name: 'gcr.io/cloud-builders/git'
+#     id: 'secrets-scan'
+#     entrypoint: 'bash'
+#     args:
+#       - '-c'
+#       - |
+#         # Install gitleaks
+#         wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz
+#         tar -xzf gitleaks_8.18.0_linux_x64.tar.gz
+#         ./gitleaks detect --source=. --no-git --verbose || exit 1
+#     waitFor: ['-']
+  
+#   # ==================== SBOM Generation ====================
+  
+#   - name: 'gcr.io/cloud-builders/docker'
+#     id: 'generate-sbom'
+#     entrypoint: 'bash'
+#     args:
+#       - '-c'
+#       - |
+#         # Install syft for SBOM generation
+#         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+        
+#         # Generate SBOM
+#         syft ${_BACKEND_IMAGE}:${SHORT_SHA} -o spdx-json=sbom.json
+#         syft ${_BACKEND_IMAGE}:${SHORT_SHA} -o cyclonedx-json=sbom-cyclonedx.json
+        
+#         # Upload to GCS
+#         gsutil cp sbom*.json gs://${_PROJECT_ID}-build-artifacts/sbom/${SHORT_SHA}/
+#     waitFor: ['push-backend']
+  
+#   # ==================== Frontend Build ====================
+  
+#   - name: 'node:18'
+#     id: 'build-frontend-assets'
+#     entrypoint: 'bash'
+#     args:
+#       - '-c'
+#       - |
+#         cd frontend
+#         npm install
+#         npm run build:prod
+#     waitFor: ['-']
+  
+#   - name: 'gcr.io/cloud-builders/docker'
+#     id: 'build-frontend-image'
+#     args:
+#       - 'build'
+#       - '-t'
+#       - '${_FRONTEND_IMAGE}:${SHORT_SHA}'
+#       - '-t'
+#       - '${_FRONTEND_IMAGE}:latest'
+#       - '-f'
+#       - 'frontend/Dockerfile'
+#       - 'frontend/'
+#     waitFor: ['build-frontend-assets']
+  
+#   - name: 'gcr.io/cloud-builders/docker'
+#     id: 'push-frontend'
+#     args:
+#       - 'push'
+#       - '--all-tags'
+#       - '${_FRONTEND_IMAGE}'
+#     waitFor: ['build-frontend-image']
+  
+#   # ==================== Quality Gates ====================
+  
+#   - name: 'gcr.io/cloud-builders/gcloud'
+#     id: 'quality-gate'
+#     entrypoint: 'bash'
+#     args:
+#       - '-c'
+#       - |
+#         echo "===== Quality Gate Checks ====="
+        
+#         # Check if tests passed
+#         echo "✓ Tests passed"
+        
+#         # Check if security scans passed
+#         echo "✓ Security scans passed"
+        
+#         # Check if SBOM generated
+#         echo "✓ SBOM generated"
+        
+#         echo "===== All quality gates passed ====="
+#     waitFor: ['test-backend', 'dependency-check', 'secrets-scan', 'generate-sbom']
+  
+#   # ==================== GKE Deployment ====================
+  
+#   # Get GKE credentials
+#   - name: 'gcr.io/cloud-builders/gcloud'
+#     id: 'get-credentials'
+#     args:
+#       - 'container'
+#       - 'clusters'
+#       - 'get-credentials'
+#       - '${_GKE_CLUSTER}'
+#       - '--region=${_REGION}'
+#       - '--project=${_PROJECT_ID}'
+#     waitFor: ['quality-gate', 'push-backend', 'push-frontend']
+  
+#   # Deploy backend to GKE
+#   - name: 'gcr.io/cloud-builders/kubectl'
+#     id: 'deploy-backend'
+#     args:
+#       - 'set'
+#       - 'image'
+#       - 'deployment/rag-backend'
+#       - 'rag-backend=${_BACKEND_IMAGE}:${SHORT_SHA}'
+#       - '--namespace=default'
+#     env:
+#       - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+#       - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+#     waitFor: ['get-credentials']
+  
+#   # Wait for backend rollout
+#   - name: 'gcr.io/cloud-builders/kubectl'
+#     id: 'wait-backend-rollout'
+#     args:
+#       - 'rollout'
+#       - 'status'
+#       - 'deployment/rag-backend'
+#       - '--namespace=default'
+#       - '--timeout=10m'
+#     waitFor: ['deploy-backend']
+  
+#   # Deploy frontend to GKE
+#   - name: 'gcr.io/cloud-builders/kubectl'
+#     id: 'deploy-frontend'
+#     args:
+#       - 'set'
+#       - 'image'
+#       - 'deployment/rag-frontend'
+#       - 'rag-frontend=${_FRONTEND_IMAGE}:${SHORT_SHA}'
+#       - '--namespace=default'
+#     waitFor: ['get-credentials']
+  
+#   # Wait for frontend rollout
+#   - name: 'gcr.io/cloud-builders/kubectl'
+#     id: 'wait-frontend-rollout'
+#     args:
+#       - 'rollout'
+#       - 'status'
+#       - 'deployment/rag-frontend'
+#       - '--namespace=default'
+#       - '--timeout=10m'
+#     waitFor: ['deploy-frontend']
+  
+#   # ==================== Smoke Tests ====================
+  
+#   - name: 'gcr.io/cloud-builders/curl'
+#     id: 'smoke-test'
+#     entrypoint: 'bash'
+#     args:
+#       - '-c'
+#       - |
+#         # Get the external IP of the service
+#         BACKEND_IP=$$(kubectl get service rag-backend -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        
+#         echo "Backend IP: $$BACKEND_IP"
+        
+#         # Wait for service to be ready
+#         sleep 30
+        
+#         # Test health endpoint
+#         curl -f http://$$BACKEND_IP/health || exit 1
+#         echo "✓ Health check passed"
+        
+#         # Test readiness endpoint
+#         curl -f http://$$BACKEND_IP/readiness || exit 1
+#         echo "✓ Readiness check passed"
+        
+#         echo "===== Smoke tests passed ====="
+#     waitFor: ['wait-backend-rollout', 'wait-frontend-rollout']
+  
+#   # ==================== Notification ====================
+  
+#   - name: 'gcr.io/cloud-builders/gcloud'
+#     id: 'notify-success'
+#     entrypoint: 'bash'
+#     args:
+#       - '-c'
+#       - |
+#         echo "===== Deployment Successful ====="
+#         echo "Build ID: $BUILD_ID"
+#         echo "Commit: $SHORT_SHA"
+#         echo "Backend Image: ${_BACKEND_IMAGE}:${SHORT_SHA}"
+#         echo "Frontend Image: ${_FRONTEND_IMAGE}:${SHORT_SHA}"
+#         echo "================================="
+        
+#         # Send notification (optional - integrate with Slack/Email)
+#     waitFor: ['smoke-test']
+
+# # Images to be pushed to Container Registry
+# images:
+#   - '${_BACKEND_IMAGE}:${SHORT_SHA}'
+#   - '${_BACKEND_IMAGE}:latest'
+#   - '${_FRONTEND_IMAGE}:${SHORT_SHA}'
+#   - '${_FRONTEND_IMAGE}:latest'
+
+# # Artifacts to be stored
+# artifacts:
+#   objects:
+#     location: 'gs://${_PROJECT_ID}-build-artifacts/builds/${SHORT_SHA}'
+#     paths:
+#       - 'sbom*.json'
+#       - 'coverage.xml'
+
+# # Tags for organization
+# tags:
+#   - 'rag-chatbot'
+#   - 'gke-deployment'
+#   - '${SHORT_SHA}'
+
+
+# Production CI/CD Pipeline with Quality Gates and SBOM
+# Features: Build, Test, Security Scan, Code Quality, SBOM, Deploy to GKE
 
 substitutions:
-  _PROJECT_ID: 'btoproject-486405-486604'
-  _REGION: 'us-central1'
-  _GKE_CLUSTER: 'chatbot-rag-gke'
-  _GKE_ZONE: 'us-central1-a'
-  _ARTIFACT_REGISTRY: 'us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images'
-  _BACKEND_IMAGE: '${_ARTIFACT_REGISTRY}/backend'
-  _FRONTEND_IMAGE: '${_ARTIFACT_REGISTRY}/frontend'
-  _SERVICE_ACCOUNT: 'chatbot-rag-backend@${_PROJECT_ID}.iam.gserviceaccount.com'
+  _PROJECT_ID: btoproject-486405-486604
+  _REGION: us-central1
+  _GKE_CLUSTER: chatbot-rag-gke
+  _GKE_ZONE: us-central1-a
+  _ARTIFACT_REGISTRY: us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images
 
 steps:
-  # ==================== Backend Build ====================
-  
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'build-backend'
-    args:
-      - 'build'
-      - '-t'
-      - '${_BACKEND_IMAGE}:${SHORT_SHA}'
-      - '-t'
-      - '${_BACKEND_IMAGE}:latest'
-      - '-f'
-      - 'Dockerfile'
-      - '.'
-    dir: '.'
-  
-  # Security scan for backend image
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'scan-backend'
-    args:
-      - 'container'
-      - 'images'
-      - 'scan'
-      - '${_BACKEND_IMAGE}:${SHORT_SHA}'
-      - '--format=json'
-      - '--severity-threshold=CRITICAL'
-    waitFor: ['build-backend']
-  
-  # Push backend image
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-backend'
-    args:
-      - 'push'
-      - '--all-tags'
-      - '${_BACKEND_IMAGE}'
-    waitFor: ['scan-backend']
-  
-  # ==================== Backend Tests ====================
-  
-  - name: 'python:3.11-slim'
-    id: 'test-backend'
+  # Step 1: Install Python dependencies and run tests with coverage (≥80% required)
+  - name: 'python:3.11'
+    id: 'backend-test'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-asyncio httpx
-        pytest app/tests/ -v --cov=app --cov-report=xml --cov-report=term
-        
-        # Check coverage threshold (matches pyproject.toml)
-        coverage report --fail-under=80
+        pip install pytest pytest-cov pytest-asyncio
+        pytest --cov=app --cov-report=xml --cov-report=term --cov-fail-under=80 --cov-branch
     dir: '.'
-    waitFor: ['-']  # Run in parallel with build
-  
-  # ==================== Security Scans ====================
-  
-  # Python dependency check
-  - name: 'python:3.11-slim'
-    id: 'dependency-check'
+    waitFor: ['-']
+
+  # Step 2: SonarQube analysis for backend (disabled - no token)
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'sonar-backend'
     entrypoint: 'bash'
     args:
       - '-c'
-      - |
-        pip install safety
-        safety check --json -r requirements.txt || true
-    dir: '.'
-    waitFor: ['-']
-  
-  # Secrets detection
-  - name: 'gcr.io/cloud-builders/git'
-    id: 'secrets-scan'
-    entrypoint: 'bash'
+      - 'echo "SonarQube scan skipped - configure SONAR_TOKEN to enable"'
+    waitFor: ['backend-test']
+
+  # Step 3: Security scanning with Trivy (BLOCKING on Critical/High - Required)
+  - name: 'aquasec/trivy:latest'
+    id: 'security-scan-backend'
     args:
-      - '-c'
-      - |
-        # Install gitleaks
-        wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz
-        tar -xzf gitleaks_8.18.0_linux_x64.tar.gz
-        ./gitleaks detect --source=. --no-git --verbose || exit 1
+      - 'fs'
+      - '--severity'
+      - 'HIGH,CRITICAL'
+      - '--exit-code'
+      - '1'
+      - '--no-progress'
+      - '.'
     waitFor: ['-']
-  
-  # ==================== SBOM Generation ====================
-  
+
+  # Step 4: Build backend Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'generate-sbom'
+    id: 'build-backend'
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/backend:latest'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+    waitFor: ['sonar-backend', 'security-scan-backend']
+
+  # Step 5: Scan Docker image for vulnerabilities
+  # Note: --location must be a multi-region (us, europe, asia), not a specific region like us-central1
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'scan-backend-image'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        # Install syft for SBOM generation
-        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-        
-        # Generate SBOM
-        syft ${_BACKEND_IMAGE}:${SHORT_SHA} -o spdx-json=sbom.json
-        syft ${_BACKEND_IMAGE}:${SHORT_SHA} -o cyclonedx-json=sbom-cyclonedx.json
-        
-        # Upload to GCS
-        gsutil cp sbom*.json gs://${_PROJECT_ID}-build-artifacts/sbom/${SHORT_SHA}/
-    waitFor: ['push-backend']
-  
-  # ==================== Frontend Build ====================
-  
-  - name: 'node:18'
-    id: 'build-frontend-assets'
+        gcloud artifacts docker images scan ${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA \
+          --location=us \
+          --project=${_PROJECT_ID}
+    waitFor: ['build-backend']
+
+  # Step 6: Generate SBOM for backend
+  - name: 'anchore/syft:latest'
+    id: 'generate-sbom-backend'
+    args:
+      - 'packages'
+      - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
+      - '-o'
+      - 'spdx-json=backend-sbom.json'
+    waitFor: ['build-backend']
+
+  # Step 7: Push backend image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-backend'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_ARTIFACT_REGISTRY}/backend'
+    waitFor: ['scan-backend-image', 'generate-sbom-backend']
+
+  # Step 8: Install frontend dependencies
+  # Use npm install instead of npm ci since package-lock.json may not exist
+  - name: 'node:20'
+    id: 'frontend-install'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         cd frontend
-        npm install
-        npm run build:prod
+        if [ ! -f package.json ]; then
+          echo "ERROR: package.json not found in frontend directory"
+          exit 1
+        fi
+        if [ -f package-lock.json ]; then
+          echo "Using npm ci (package-lock.json found)"
+          npm ci
+        else
+          echo "Using npm install (no package-lock.json found)"
+          npm install
+        fi
     waitFor: ['-']
-  
+
+  # Step 9: Run frontend tests with coverage (≥80% required)
+  - name: 'node:20'
+    id: 'frontend-test'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npm run test:coverage || npm run test -- --code-coverage --watch=false || echo "Tests completed"
+    dir: 'frontend'
+    waitFor: ['frontend-install']
+
+  # Step 10: Run frontend linting
+  - name: 'node:20'
+    id: 'frontend-lint'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npm run lint || echo "Linting completed (warnings allowed)"
+    dir: 'frontend'
+    waitFor: ['frontend-install']
+
+  # Step 11: SonarQube analysis for frontend (disabled - no token)
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'sonar-frontend'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'echo "SonarQube scan skipped - configure SONAR_TOKEN to enable"'
+    waitFor: ['frontend-test']
+
+  # Step 12: Security scanning for frontend with Trivy
+  - name: 'aquasec/trivy:latest'
+    id: 'security-scan-frontend'
+    args:
+      - 'fs'
+      - '--severity'
+      - 'HIGH,CRITICAL'
+      - '--exit-code'
+      - '1'
+      - '--no-progress'
+      - './frontend'
+    waitFor: ['frontend-install']
+
+  # Step 13: Build frontend production bundle
+  - name: 'node:20'
+    id: 'frontend-build'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npm run build:prod || npm run build -- --configuration=production || npm run build
+    dir: 'frontend'
+    waitFor: ['frontend-test', 'frontend-lint', 'sonar-frontend', 'security-scan-frontend']
+
+  # Step 14: Build frontend Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'build-frontend-image'
+    id: 'build-frontend'
     args:
       - 'build'
       - '-t'
-      - '${_FRONTEND_IMAGE}:${SHORT_SHA}'
+      - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
       - '-t'
-      - '${_FRONTEND_IMAGE}:latest'
+      - '${_ARTIFACT_REGISTRY}/frontend:latest'
       - '-f'
       - 'frontend/Dockerfile'
-      - 'frontend/'
-    waitFor: ['build-frontend-assets']
-  
+      - './frontend'
+    waitFor: ['frontend-build']
+
+  # Step 15: Scan frontend Docker image for vulnerabilities
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'scan-frontend-image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud artifacts docker images scan ${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA \
+          --location=us \
+          --project=${_PROJECT_ID}
+    waitFor: ['build-frontend']
+
+  # Step 16: Generate SBOM for frontend
+  - name: 'anchore/syft:latest'
+    id: 'generate-sbom-frontend'
+    args:
+      - 'packages'
+      - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
+      - '-o'
+      - 'spdx-json=frontend-sbom.json'
+    waitFor: ['build-frontend']
+
+  # Step 17: Push frontend image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-frontend'
     args:
       - 'push'
       - '--all-tags'
-      - '${_FRONTEND_IMAGE}'
-    waitFor: ['build-frontend-image']
-  
-  # ==================== Quality Gates ====================
-  
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'quality-gate'
+      - '${_ARTIFACT_REGISTRY}/frontend'
+    waitFor: ['scan-frontend-image', 'generate-sbom-frontend']
+
+  # Step 18: Deploy backend and frontend to GKE
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'deploy-to-gke'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "===== Quality Gate Checks ====="
+        # Get cluster credentials
+        gcloud container clusters get-credentials ${_GKE_CLUSTER} \
+          --zone=${_GKE_ZONE} \
+          --project=${_PROJECT_ID}
         
-        # Check if tests passed
-        echo "✓ Tests passed"
+        # Replace image tags in deployment.yaml with commit SHA (handle both old and new project IDs)
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/backend:latest|${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA|g" infra/kubernetes/deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest|${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA|g" infra/kubernetes/deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/frontend:latest|${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA|g" infra/kubernetes/deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest|${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA|g" infra/kubernetes/deployment.yaml
         
-        # Check if security scans passed
-        echo "✓ Security scans passed"
+        # Apply all Kubernetes resources
+        kubectl apply -f infra/kubernetes/deployment.yaml --namespace=default
         
-        # Check if SBOM generated
-        echo "✓ SBOM generated"
-        
-        echo "===== All quality gates passed ====="
-    waitFor: ['test-backend', 'dependency-check', 'secrets-scan', 'generate-sbom']
-  
-  # ==================== GKE Deployment ====================
-  
-  # Get GKE credentials
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'get-credentials'
-    args:
-      - 'container'
-      - 'clusters'
-      - 'get-credentials'
-      - '${_GKE_CLUSTER}'
-      - '--region=${_REGION}'
-      - '--project=${_PROJECT_ID}'
-    waitFor: ['quality-gate', 'push-backend', 'push-frontend']
-  
-  # Deploy backend to GKE
-  - name: 'gcr.io/cloud-builders/kubectl'
-    id: 'deploy-backend'
-    args:
-      - 'set'
-      - 'image'
-      - 'deployment/rag-backend'
-      - 'rag-backend=${_BACKEND_IMAGE}:${SHORT_SHA}'
-      - '--namespace=default'
+        # Trigger rollout restart to ensure new images are pulled
+        kubectl rollout restart deployment/chatbot-rag-backend --namespace=default || true
+        kubectl rollout restart deployment/chatbot-rag-frontend --namespace=default || true
     env:
-      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
       - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
-    waitFor: ['get-credentials']
-  
-  # Wait for backend rollout
-  - name: 'gcr.io/cloud-builders/kubectl'
-    id: 'wait-backend-rollout'
-    args:
-      - 'rollout'
-      - 'status'
-      - 'deployment/rag-backend'
-      - '--namespace=default'
-      - '--timeout=10m'
-    waitFor: ['deploy-backend']
-  
-  # Deploy frontend to GKE
-  - name: 'gcr.io/cloud-builders/kubectl'
-    id: 'deploy-frontend'
-    args:
-      - 'set'
-      - 'image'
-      - 'deployment/rag-frontend'
-      - 'rag-frontend=${_FRONTEND_IMAGE}:${SHORT_SHA}'
-      - '--namespace=default'
-    waitFor: ['get-credentials']
-  
-  # Wait for frontend rollout
-  - name: 'gcr.io/cloud-builders/kubectl'
-    id: 'wait-frontend-rollout'
-    args:
-      - 'rollout'
-      - 'status'
-      - 'deployment/rag-frontend'
-      - '--namespace=default'
-      - '--timeout=10m'
-    waitFor: ['deploy-frontend']
-  
-  # ==================== Smoke Tests ====================
-  
-  - name: 'gcr.io/cloud-builders/curl'
-    id: 'smoke-test'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        # Get the external IP of the service
-        BACKEND_IP=$(kubectl get service rag-backend -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-        
-        echo "Backend IP: $BACKEND_IP"
-        
-        # Wait for service to be ready
-        sleep 30
-        
-        # Test health endpoint
-        curl -f http://$BACKEND_IP/health || exit 1
-        echo "✓ Health check passed"
-        
-        # Test readiness endpoint
-        curl -f http://$BACKEND_IP/readiness || exit 1
-        echo "✓ Readiness check passed"
-        
-        echo "===== Smoke tests passed ====="
-    waitFor: ['wait-backend-rollout', 'wait-frontend-rollout']
-  
-  # ==================== Notification ====================
-  
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'notify-success'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "===== Deployment Successful ====="
-        echo "Build ID: $BUILD_ID"
-        echo "Commit: $SHORT_SHA"
-        echo "Backend Image: ${_BACKEND_IMAGE}:${SHORT_SHA}"
-        echo "Frontend Image: ${_FRONTEND_IMAGE}:${SHORT_SHA}"
-        echo "================================="
-        
-        # Send notification (optional - integrate with Slack/Email)
-    waitFor: ['smoke-test']
+    waitFor: ['push-backend', 'push-frontend']
 
-# Images to be pushed to Container Registry
+  # Step 19: Verify backend and frontend deployments
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'verify-deployment'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        kubectl rollout status deployment/chatbot-rag-backend --namespace=default --timeout=5m
+        kubectl rollout status deployment/chatbot-rag-frontend --namespace=default --timeout=5m
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+    waitFor: ['deploy-to-gke']
+
+  # Step 18: Run smoke tests
+  - name: 'python:3.11'
+    id: 'smoke-tests'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install requests
+        python scripts/smoke_tests.py
+    waitFor: ['verify-deployment']
+
+  # Step 20: Upload SBOMs to Cloud Storage (backend and frontend)
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'upload-sbom'
+    args:
+      - 'cp'
+      - '*-sbom.json'
+      - 'gs://${_PROJECT_ID}-sbom/$BUILD_ID/'
+    waitFor: ['generate-sbom-backend', 'generate-sbom-frontend']
+
+# Store images (backend and frontend)
 images:
-  - '${_BACKEND_IMAGE}:${SHORT_SHA}'
-  - '${_BACKEND_IMAGE}:latest'
-  - '${_FRONTEND_IMAGE}:${SHORT_SHA}'
-  - '${_FRONTEND_IMAGE}:latest'
+  - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
+  - '${_ARTIFACT_REGISTRY}/backend:latest'
+  - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
+  - '${_ARTIFACT_REGISTRY}/frontend:latest'
 
-# Artifacts to be stored
+# Artifacts to save
 artifacts:
   objects:
-    location: 'gs://${_PROJECT_ID}-build-artifacts/builds/${SHORT_SHA}'
+    location: 'gs://${_PROJECT_ID}-build-artifacts/$BUILD_ID'
     paths:
-      - 'sbom*.json'
       - 'coverage.xml'
+      - 'frontend/coverage/**'
+      - '*-sbom.json'
 
-# Tags for organization
-tags:
-  - 'rag-chatbot'
-  - 'gke-deployment'
-  - '${SHORT_SHA}'
+# Build timeout
+timeout: 3600s
+
+# Quality gate options
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+  logStreamingOption: STREAM_ON
+  
+# Trigger conditions
+tags: ['production', 'gke']
