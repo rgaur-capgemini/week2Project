@@ -4,6 +4,12 @@ Tests vector storage and retrieval.
 """
 import pytest
 from unittest.mock import Mock, MagicMock, patch
+import sys
+
+# Mock vertexai before importing
+sys.modules['vertexai'] = MagicMock()
+sys.modules['vertexai.matching_engine'] = MagicMock()
+
 from app.rag.vector_store import VectorStore
 
 
