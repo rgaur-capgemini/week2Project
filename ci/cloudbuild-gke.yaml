@@ -570,10 +570,10 @@ steps:
           --project=${_PROJECT_ID}
         
         # Replace image tags in deployment files with commit SHA (handle both old and new project IDs)
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/backend:latest|${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest|${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/frontend:latest|${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest|${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/backend:latest|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/frontend:latest|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
         
         # Apply all Kubernetes resources
         kubectl apply -f k8s/ --namespace=default
@@ -637,12 +637,12 @@ steps:
   #     - 'gs://${_PROJECT_ID}-sbom/$BUILD_ID/'
   #   waitFor: ['generate-sbom-backend', 'generate-sbom-frontend']
 
-# Store images (backend and frontend)
-images:
-  - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
-  - '${_ARTIFACT_REGISTRY}/backend:latest'
-  - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
-  - '${_ARTIFACT_REGISTRY}/frontend:latest'
+# Store images (backend and frontend) - DISABLED (images already pushed in build steps)
+# images:
+#   - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
+#   - '${_ARTIFACT_REGISTRY}/backend:latest'
+#   - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
+#   - '${_ARTIFACT_REGISTRY}/frontend:latest'
 
 # Artifacts to save
 artifacts:
