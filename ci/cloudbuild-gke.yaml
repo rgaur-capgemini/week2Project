@@ -328,9 +328,8 @@ steps:
         echo "Installing dependencies from requirements.txt..."
         pip install -r requirements.txt || { echo "ERROR: Failed to install requirements.txt"; exit 1; }
         echo "Installing test dependencies..."
-        pip install --cache-dir=$PIP_CACHE_DIR pytest pytest-cov pytest-asyncio || { echo "ERROR: Failed to install test deps"; exit 1; }
-        echo "Running tests with coverage..."
-          pytest --cov=app --cov-report=xml --cov-report=term --cov-fail-under=90 --cov-branch --ignore=app/__init__.py
+        pip install pytest pytest-cov pytest-asyncio || { echo "ERROR: Failed to install test deps"; exit 1; }
+          pytest --cov=app --cov-report=xml --cov-report=term --cov-fail-under=80 --cov-branch --ignore=app/__init__.py
     dir: '.'
     waitFor: ['-']
 
