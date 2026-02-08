@@ -2,6 +2,13 @@
 import sys
 import os
 from pathlib import Path
+from unittest.mock import MagicMock
+
+# Mock vertexai modules before any imports
+sys.modules['vertexai'] = MagicMock()
+sys.modules['vertexai.language_models'] = MagicMock()
+sys.modules['vertexai.generative_models'] = MagicMock()
+sys.modules['vertexai.matching_engine'] = MagicMock()
 
 # Add project root to path
 project_root = Path(__file__).parent

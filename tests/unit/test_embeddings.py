@@ -4,6 +4,12 @@ Tests embedding generation and caching.
 """
 import pytest
 from unittest.mock import Mock, MagicMock, patch
+import sys
+
+# Mock vertexai before importing
+sys.modules['vertexai'] = MagicMock()
+sys.modules['vertexai.language_models'] = MagicMock()
+
 from app.rag.embeddings import EmbeddingGenerator
 
 

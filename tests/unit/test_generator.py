@@ -4,6 +4,12 @@ Tests LLM response generation.
 """
 import pytest
 from unittest.mock import Mock, MagicMock, patch
+import sys
+
+# Mock vertexai before importing
+sys.modules['vertexai'] = MagicMock()
+sys.modules['vertexai.generative_models'] = MagicMock()
+
 from app.rag.generator import AnswerGenerator
 
 
