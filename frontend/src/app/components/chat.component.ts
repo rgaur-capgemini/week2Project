@@ -9,6 +9,9 @@ import { ChatMessage } from '../models/models';
       <mat-card class="chat-card">
         <mat-card-header>
           <mat-card-title>RAG Chat</mat-card-title>
+          <button mat-icon-button (click)="startNewConversation()" matTooltip="Start New Conversation">
+            <mat-icon>add_circle</mat-icon>
+          </button>
         </mat-card-header>
         
         <mat-card-content class="messages-container">
@@ -39,7 +42,11 @@ import { ChatMessage } from '../models/models';
         </mat-card-header>
         <mat-card-content>
           <input type="file" #fileInput (change)="onFileSelected($event)" multiple accept=".pdf,.txt,.docx">
-          <button mat-raised-button color="accent" (click)="uploadFiles()" [disabled]="!selectedFiles || uploading">
+          <p *ngIf="selectedFiles && selectedFiles.length > 0" class="file-count">
+            {{ selectedFiles.length }} file(s) selected
+          </p>
+          <button mat-raised-button color="accent" (click)="uploadFiles()" 
+                  [disabled]="!selectedFiles || selectedFiles.length === 0 || uploading">
             <mat-icon>upload</mat-icon>
             {{ uploading ? 'Uploading...' : 'Upload' }}
           </button>
@@ -89,6 +96,11 @@ import { ChatMessage } from '../models/models';
       text-align: center;
       padding: 20px;
     }
+    .file-count {
+      margin: 10px 0;
+      font-size: 14px;
+      color: #666;
+    }
   `]
 })
 export class ChatComponent {
@@ -100,8 +112,38 @@ export class ChatComponent {
   sessionId: string = '';
 
   constructor(private chatService: ChatService) {
-    // Generate session ID on component init
-    this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Try to restore existing session from localStorage (for conversation continuity)
+    const savedSessionId = localStorage.getItem('current_session_id');
+    
+    if (savedSessionId) {
+      // Reuse existing session (maintains conversation across page refreshes)
+      this.sessionId = savedSessionId;
+    } else {
+      // Generate new session ID using crypto.randomUUID() for better uniqueness
+      this.sessionId = `session_${Date.now()}_${this.generateRandomId()}`;
+      localStorage.setItem('current_session_id', this.sessionId);
+    }
+  }
+
+  /**
+   * Generate cryptographically strong random ID
+   */
+  private generateRandomId(): string {
+    // Use crypto.randomUUID() if available (modern browsers)
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID().split('-')[0]; // First 8 chars of UUID
+    }
+    // Fallback to multiple random values for better entropy
+    return Math.random().toString(36).substr(2, 9) + Math.random().toString(36).substr(2, 9);
+  }
+
+  /**
+   * Start a new conversation (clear history and generate new session_id)
+   */
+  startNewConversation(): void {
+    this.messages = [];
+    this.sessionId = `session_${Date.now()}_${this.generateRandomId()}`;
+    localStorage.setItem('current_session_id', this.sessionId);
   }
 
   sendMessage(): void {
@@ -156,11 +198,17 @@ export class ChatComponent {
   }
 
   onFileSelected(event: any): void {
-    this.selectedFiles = event.target.files;
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      this.selectedFiles = files;
+      console.log(`Selected ${files.length} file(s)`);
+    } else {
+      this.selectedFiles = null;
+    }
   }
 
   uploadFiles(): void {
-    if (!this.selectedFiles) return;
+    if (!this.selectedFiles || this.selectedFiles.length === 0) return;
 
     const formData = new FormData();
     for (let i = 0; i < this.selectedFiles.length; i++) {
@@ -177,6 +225,7 @@ export class ChatComponent {
       error: (err) => {
         alert('Upload failed: ' + (err.error?.message || 'Unknown error'));
         this.uploading = false;
+        this.selectedFiles = null;
       }
     });
   }
