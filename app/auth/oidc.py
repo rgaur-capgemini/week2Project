@@ -204,10 +204,11 @@ class OIDCAuthenticator:
             Decoded token payload
         """
         try:
-            # Get JWT secret from Secret Manager
-            jwt_secret = config.get_secret("jwt-secret")
+            # Get JWT secret from Secret Manager (match jwt_handler.py secret name)
+            jwt_secret = config.get_secret("chatbot-jwt-secret")
             if not jwt_secret:
-                raise RuntimeError("JWT secret not configured")
+                # Fallback for development
+                jwt_secret = os.getenv("JWT_SECRET_KEY", "development-secret-change-in-production")
             
             # Decode and validate
             payload = jwt.decode(
