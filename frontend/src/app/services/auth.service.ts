@@ -32,7 +32,7 @@ export class AuthService {
   }
 
   loginWithGoogle(idToken: string): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/auth/google`, { id_token: idToken }).pipe(
+    return this.http.post(`${environment.apiUrl}/auth/login`, { token: idToken }).pipe(
       tap((response: any) => {
         const user: User = {
           user_id: response.user_id,
