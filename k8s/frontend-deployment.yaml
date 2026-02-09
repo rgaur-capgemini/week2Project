@@ -43,7 +43,7 @@ spec:
         
         env:
         - name: API_URL
-          value: "http://rag-backend"
+          value: "http://34.28.73.87"
         - name: ENVIRONMENT
           value: "production"
         
