@@ -72,8 +72,8 @@ class Config:
         self.REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
         self.REDIS_DB_HISTORY = int(os.getenv("REDIS_DB_HISTORY", "0"))
         self.REDIS_DB_ANALYTICS = int(os.getenv("REDIS_DB_ANALYTICS", "1"))
-        # Optional Redis password: prefer Secret Manager, fallback to env var
-        self.REDIS_PASSWORD = self.get_secret("redis-password") or os.getenv("REDIS_PASSWORD", "")
+        # Redis password from env var only (Secret Manager causes timeout)
+        self.REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
         
         # Admin Configuration
         admin_emails_str = os.getenv("ADMIN_EMAILS", "")
