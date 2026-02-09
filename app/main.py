@@ -220,10 +220,10 @@ async def get_public_config():
     Public configuration endpoint for frontend.
     Returns only non-sensitive configuration like OAuth Client ID.
     """
-    from app.auth.oidc import get_oidc_authenticator
+    from app.auth.oidc import get_authenticator
     
     try:
-        oidc = get_oidc_authenticator()
+        oidc = get_authenticator()
         return {
             "googleClientId": oidc.client_id,
             "projectId": config.PROJECT_ID,
