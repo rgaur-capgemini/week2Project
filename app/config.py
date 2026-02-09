@@ -29,9 +29,9 @@ class Config:
         
         # Vertex AI Configuration
         self.VERTEX_LOCATION = os.getenv("VERTEX_LOCATION", self.REGION)
-        self.VERTEX_INDEX_ID = os.getenv("VERTEX_INDEX_ID", "")
-        self.VERTEX_INDEX_ENDPOINT = os.getenv("VERTEX_INDEX_ENDPOINT", "")
-        self.DEPLOYED_INDEX_ID = os.getenv("DEPLOYED_INDEX_ID", "rag-index-deployed")
+        self.VERTEX_INDEX_ID = os.getenv("VERTEX_INDEX_ID", "4892433118440456192")
+        self.VERTEX_INDEX_ENDPOINT = os.getenv("VERTEX_INDEX_ENDPOINT", "7605324128349847552")
+        self.DEPLOYED_INDEX_ID = os.getenv("DEPLOYED_INDEX_ID", "chatbot_rag_deployed_1770440353081")
         
         # Model Configuration
         self.MODEL_VARIANT = os.getenv("MODEL_VARIANT", "gemini-2.0-flash-001")
@@ -72,8 +72,8 @@ class Config:
         self.REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
         self.REDIS_DB_HISTORY = int(os.getenv("REDIS_DB_HISTORY", "0"))
         self.REDIS_DB_ANALYTICS = int(os.getenv("REDIS_DB_ANALYTICS", "1"))
-        # Optional Redis password: prefer Secret Manager, fallback to env var
-        self.REDIS_PASSWORD = self.get_secret("redis-password") or os.getenv("REDIS_PASSWORD", "")
+        # Redis password from env var only (Secret Manager causes timeout)
+        self.REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
         
         # Admin Configuration
         admin_emails_str = os.getenv("ADMIN_EMAILS", "")
