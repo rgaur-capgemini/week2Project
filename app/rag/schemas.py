@@ -7,6 +7,8 @@ class QueryRequest(BaseModel):
     top_k: int = Field(default=5, description="Number of chunks to retrieve", ge=1, le=20)
     temperature: float = Field(default=0.2, description="LLM temperature", ge=0.0, le=1.0)
     chat_history: Optional[List[Dict[str, str]]] = Field(default=None, description="Previous conversation turns")
+    session_id: Optional[str] = Field(default=None, description="Session/Conversation ID for storing chat history")
+    user_id: Optional[str] = Field(default=None, description="User ID for storing chat history")
 
 class QueryResponse(BaseModel):
     question: str

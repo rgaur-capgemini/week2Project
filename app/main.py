@@ -415,7 +415,9 @@ async def ingest(files: List[UploadFile] = File(...)):
 @app.post("/ingest-and-query", response_model=UnifiedResponse)
 async def ingest_and_query(
     question: str = Form(..., description="User's question"),
-    files: List[UploadFile] = File(..., description="Documents to process")
+    files: List[UploadFile] = File(..., description="Documents to process"),
+    session_id: Optional[str] = Form(None, description="Session ID for storing chat history"),
+    user_id: Optional[str] = Form(None, description="User ID for storing chat history")
 ):
     """
     **UNIFIED ENDPOINT: Accept documents + question in a SINGLE API call**
@@ -620,6 +622,29 @@ async def ingest_and_query(
                 citations = [pii_detector.redact_pii(cite) for cite in citations]
                 logger.info(" PII redacted from unified response")
             
+            # Store conversation to Redis if session_id provided
+            if chat_history_store and session_id:
+                try:
+                    conversation_id = session_id
+                    actual_user_id = user_id or "anonymous"
+                    
+                    chat_history_store.save_message(
+                        user_id=actual_user_id,
+                        question=question,
+                        answer=answer,
+                        metadata={
+                            "model": config.MODEL_VARIANT,
+                            "num_contexts": len(contexts),
+                            "ingested_chunks": len(chunk_ids),
+                            "unified_endpoint": True,
+                            "tokens": token_usage
+                        },
+                        conversation_id=conversation_id
+                    )
+                    logger.info(f"💾 Stored ingest-and-query conversation to Redis", session_id=conversation_id, user_id=actual_user_id)
+                except Exception as e:
+                    logger.warning(f"Failed to store chat history to Redis: {e}")
+            
             # ===== STEP 8: Build unified response =====
             metrics["total_time"] = time.time() - start_time
             
@@ -755,6 +780,28 @@ async def query(req: QueryRequest):
                 contexts = [pii_detector.redact_pii(ctx) for ctx in contexts]
                 citations = [pii_detector.redact_pii(cite) for cite in citations]
                 logger.info("🔒 PII redacted from answer, contexts, and citations")
+            
+            # Store conversation to Redis if session_id provided
+            if chat_history_store and req.session_id:
+                try:
+                    conversation_id = req.session_id
+                    user_id = req.user_id or "anonymous"
+                    
+                    chat_history_store.save_message(
+                        user_id=user_id,
+                        question=req.question,
+                        answer=answer,
+                        metadata={
+                            "model": config.MODEL_VARIANT,
+                            "num_contexts": len(contexts),
+                            "temperature": req.temperature,
+                            "tokens": token_usage
+                        },
+                        conversation_id=conversation_id
+                    )
+                    logger.info(f"💾 Stored conversation to Redis", session_id=conversation_id, user_id=user_id)
+                except Exception as e:
+                    logger.warning(f"Failed to store chat history to Redis: {e}")
             
             return QueryResponse(
                 question=req.question,
@@ -908,6 +955,29 @@ async def query_langgraph(req: QueryRequest):
                 }
                 for i, source in enumerate(result["sources"])
             ]
+            
+            # Store conversation to Redis if session_id provided
+            if chat_history_store and req.session_id:
+                try:
+                    conversation_id = req.session_id
+                    user_id = req.user_id or "anonymous"
+                    
+                    chat_history_store.save_message(
+                        user_id=user_id,
+                        question=req.question,
+                        answer=result["response"],
+                        metadata={
+                            "model": config.MODEL_VARIANT,
+                            "num_contexts": len(contexts),
+                            "confidence": result["confidence"],
+                            "iterations": result["iterations"],
+                            "langgraph": True
+                        },
+                        conversation_id=conversation_id
+                    )
+                    logger.info(f"💾 Stored LangGraph conversation to Redis", session_id=conversation_id, user_id=user_id)
+                except Exception as e:
+                    logger.warning(f"Failed to store chat history to Redis: {e}")
             
             return QueryResponse(
                 question=req.question,
