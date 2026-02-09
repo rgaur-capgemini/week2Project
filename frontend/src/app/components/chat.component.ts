@@ -97,9 +97,12 @@ export class ChatComponent {
   loading = false;
   uploading = false;
   selectedFiles: FileList | null = null;
-  conversationId: string = '';
+  sessionId: string = '';
 
-  constructor(private chatService: ChatService) {}
+  constructor(private chatService: ChatService) {
+    // Generate session ID on component init
+    this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
 
   sendMessage(): void {
     if (!this.question.trim() || this.loading) return;
@@ -112,9 +115,14 @@ export class ChatComponent {
     };
     this.messages.push(userMessage);
 
+    // Get user_id from localStorage (set during login)
+    const user = localStorage.getItem('user');
+    const userId = user ? JSON.parse(user).user_id : 'anonymous';
+
     const request = {
       question: this.question,
-      conversation_id: this.conversationId
+      session_id: this.sessionId,
+      user_id: userId
     };
 
     this.question = '';
@@ -122,7 +130,11 @@ export class ChatComponent {
 
     this.chatService.query(request).subscribe({
       next: (response) => {
-        this.conversationId = response.conversation_id || this.conversationId;
+        // Use session_id from backend if returned (backend generates if not provided)
+        if (response.session_id) {
+          this.sessionId = response.session_id;
+        }
+        
         this.messages.push({
           id: Date.now().toString(),
           role: 'assistant',

@@ -34,10 +34,13 @@ RUN addgroup -g 1001 -S nginx-app && \
     mkdir -p /var/cache/nginx/fastcgi_temp && \
     mkdir -p /var/cache/nginx/uwsgi_temp && \
     mkdir -p /var/cache/nginx/scgi_temp && \
+    mkdir -p /tmp/client_body_temp && \
     # Set ownership and permissions
     chown -R nginx-app:nginx-app /usr/share/nginx/html && \
     chown -R nginx-app:nginx-app /var/cache/nginx && \
+    chown -R nginx-app:nginx-app /tmp/client_body_temp && \
     chmod -R 755 /var/cache/nginx && \
+    chmod -R 755 /tmp/client_body_temp && \
     chown -R nginx-app:nginx-app /var/log/nginx && \
     chown -R nginx-app:nginx-app /etc/nginx/conf.d && \
     chmod -R 755 /etc/nginx/conf.d

@@ -17,6 +17,8 @@ class QueryResponse(BaseModel):
     citations: List[str]
     model_used: str = "gemini-2.0-flash-001"
     retrieval_scores: List[Dict] = []
+    session_id: Optional[str] = None  # Return session_id so frontend can track conversation
+    user_id: Optional[str] = None
 
 class IngestResponse(BaseModel):
     ingested: int
@@ -36,6 +38,8 @@ class UnifiedResponse(BaseModel):
     model_used: str = "gemini-2.0-flash-001"
     metrics: Dict = {}  # Timing and token metrics
     gcs_uris: Optional[List[str]] = None
+    session_id: Optional[str] = None  # Return session_id so frontend can track conversation
+    user_id: Optional[str] = None
 
 class EvaluateRequest(BaseModel):
     question: str

@@ -16,15 +16,18 @@ export interface ChatMessage {
 
 export interface QueryRequest {
   question: string;
-  conversation_id?: string;
+  session_id?: string;  // Session/Conversation ID for Redis storage
+  user_id?: string;     // User ID for Redis storage
   top_k?: number;
   temperature?: number;
+  chat_history?: Array<{user: string, assistant: string}>;
 }
 
 export interface QueryResponse {
   answer: string;
   contexts: string[];
-  conversation_id?: string;
+  session_id?: string;  // Session ID returned from backend
+  user_id?: string;     // User ID returned from backend
   model_used?: string;
   citations?: string[];
 }

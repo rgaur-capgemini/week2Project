@@ -622,11 +622,15 @@ async def ingest_and_query(
                 citations = [pii_detector.redact_pii(cite) for cite in citations]
                 logger.info(" PII redacted from unified response")
             
-            # Store conversation to Redis if session_id provided
-            if chat_history_store and session_id:
+            # Generate session_id if not provided
+            import uuid
+            actual_session_id = session_id or f"session_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+            actual_user_id = user_id or "anonymous"
+            
+            # Store conversation to Redis if chat_history_store available
+            if chat_history_store:
                 try:
-                    conversation_id = session_id
-                    actual_user_id = user_id or "anonymous"
+                    conversation_id = actual_session_id
                     
                     chat_history_store.save_message(
                         user_id=actual_user_id,
@@ -662,7 +666,9 @@ async def ingest_and_query(
                 pii_filtered=pii_filtered_status,
                 model_used="gemini-2.0-flash-001",
                 metrics=metrics,
-                gcs_uris=gcs_uris if gcs_uris else None
+                gcs_uris=gcs_uris if gcs_uris else None,
+                session_id=actual_session_id,
+                user_id=actual_user_id
             )
             
         except HTTPException:
@@ -781,11 +787,15 @@ async def query(req: QueryRequest):
                 citations = [pii_detector.redact_pii(cite) for cite in citations]
                 logger.info("🔒 PII redacted from answer, contexts, and citations")
             
-            # Store conversation to Redis if session_id provided
-            if chat_history_store and req.session_id:
+            # Generate session_id if not provided
+            import uuid
+            session_id = req.session_id or f"session_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+            user_id = req.user_id or "anonymous"
+            
+            # Store conversation to Redis if chat_history_store available
+            if chat_history_store:
                 try:
-                    conversation_id = req.session_id
-                    user_id = req.user_id or "anonymous"
+                    conversation_id = session_id
                     
                     chat_history_store.save_message(
                         user_id=user_id,
@@ -809,7 +819,9 @@ async def query(req: QueryRequest):
                 contexts=contexts,
                 citations=citations,
                 model_used=config.MODEL_VARIANT,
-                retrieval_scores=retrieval_scores
+                retrieval_scores=retrieval_scores,
+                session_id=session_id,
+                user_id=user_id
             )
             
         except Exception as e:
@@ -956,11 +968,15 @@ async def query_langgraph(req: QueryRequest):
                 for i, source in enumerate(result["sources"])
             ]
             
-            # Store conversation to Redis if session_id provided
-            if chat_history_store and req.session_id:
+            # Generate session_id if not provided
+            import uuid
+            session_id = req.session_id or f"session_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+            user_id = req.user_id or "anonymous"
+            
+            # Store conversation to Redis if chat_history_store available
+            if chat_history_store:
                 try:
-                    conversation_id = req.session_id
-                    user_id = req.user_id or "anonymous"
+                    conversation_id = session_id
                     
                     chat_history_store.save_message(
                         user_id=user_id,
@@ -985,7 +1001,9 @@ async def query_langgraph(req: QueryRequest):
                 contexts=contexts,
                 citations=citations,
                 model_used=config.MODEL_VARIANT,
-                retrieval_scores=retrieval_scores
+                retrieval_scores=retrieval_scores,
+                session_id=session_id,
+                user_id=user_id
             )
             
         except Exception as e:
