@@ -40,19 +40,17 @@ RUN addgroup -g 1001 -S nginx-app && \
     chmod -R 755 /var/cache/nginx && \
     chown -R nginx-app:nginx-app /var/log/nginx && \
     chown -R nginx-app:nginx-app /etc/nginx/conf.d && \
-    chmod -R 755 /etc/nginx/conf.d && \
-    touch /var/run/nginx.pid && \
-    chown -R nginx-app:nginx-app /var/run/nginx.pid
+    chmod -R 755 /etc/nginx/conf.d
 
 # Switch to non-root user
 USER nginx-app
 
-# Expose port 80 (GKE requirement)
-EXPOSE 80
+# Expose port 8080 (non-root user can bind to ports >= 1024)
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:80/health || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1
 
 # Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
