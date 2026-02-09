@@ -51,10 +51,14 @@ spec:
           value: "us-central1"
         - name: VERTEX_LOCATION
           value: "us-central1"
+        - name: VERTEX_INDEX_ID
+          value: "4892433118440456192"
+        - name: VERTEX_INDEX_ENDPOINT
+          value: "7605324128349847552"
         - name: VERTEX_INDEX_ENDPOINT_ID
           value: "7605324128349847552"
         - name: DEPLOYED_INDEX_ID
-          value: "chatbot-rag-deployed"
+          value: "chatbot_rag_deployed_1770440353081"
         - name: REDIS_HOST
           valueFrom:
             configMapKeyRef:

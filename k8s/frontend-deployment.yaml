@@ -69,11 +69,23 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
         
+        volumeMounts:
+        - name: cache
+          mountPath: /var/cache/nginx
+        - name: run
+          mountPath: /var/run
+        
         securityContext:
           runAsNonRoot: true
           runAsUser: 101  # nginx user
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
+      
+      volumes:
+      - name: cache
+        emptyDir: {}
+      - name: run
+        emptyDir: {}
 
 ---
 apiVersion: v1
