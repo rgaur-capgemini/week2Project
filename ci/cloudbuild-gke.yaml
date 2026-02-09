@@ -649,9 +649,10 @@ artifacts:
   objects:
     location: 'gs://${_PROJECT_ID}-build-artifacts/$BUILD_ID'
     paths:
-      - 'coverage.xml'
-      - 'frontend/coverage/**'
-      - '*-sbom.json'
+      - '*.txt'  # Save any text files
+      # - 'coverage.xml'  # Disabled - tests not running
+      # - 'frontend/coverage/**'  # Disabled - tests not running
+      # - '*-sbom.json'  # Disabled - SBOM generation not enabled
 
 # Build timeout
 timeout: 3600s
