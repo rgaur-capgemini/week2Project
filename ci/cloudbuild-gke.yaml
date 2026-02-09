@@ -644,15 +644,15 @@ steps:
 #   - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
 #   - '${_ARTIFACT_REGISTRY}/frontend:latest'
 
-# Artifacts to save
-artifacts:
-  objects:
-    location: 'gs://${_PROJECT_ID}-build-artifacts/$BUILD_ID'
-    paths:
-      - '*.txt'  # Save any text files
-      # - 'coverage.xml'  # Disabled - tests not running
-      # - 'frontend/coverage/**'  # Disabled - tests not running
-      # - '*-sbom.json'  # Disabled - SBOM generation not enabled
+# Artifacts to save - DISABLED (causing build failures)
+# artifacts:
+#   objects:
+#     location: 'gs://btoproject-486405-486604-build-artifacts/$BUILD_ID'
+#     paths:
+#       - '*.txt'  # Save any text files
+#       # - 'coverage.xml'  # Disabled - tests not running
+#       # - 'frontend/coverage/**'  # Disabled - tests not running
+#       # - '*-sbom.json'  # Disabled - SBOM generation not enabled
 
 # Build timeout
 timeout: 3600s
