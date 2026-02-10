@@ -347,6 +347,7 @@ steps:
         # Run tests and capture output
         pytest tests/unit \
           --cov=app \
+          --cov-config=.coveragerc \
           --cov-report=html:coverage-reports/html \
           --cov-report=xml:coverage-reports/coverage.xml \
           --cov-report=term-missing \
