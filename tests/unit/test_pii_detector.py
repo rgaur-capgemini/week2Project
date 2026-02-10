@@ -274,7 +274,8 @@ class TestDetermineStatus:
     """Test status determination logic."""
     
     @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
-    def test_status_clean(self, mock_dlp_class):
+    @patch('app.rag.pii_detector.dlp_v2.Likelihood')
+    def test_status_clean(self, mock_likelihood, mock_dlp_class):
         """Test clean status (no PII)."""
         mock_dlp = MagicMock()
         mock_dlp_class.return_value = mock_dlp
@@ -284,52 +285,70 @@ class TestDetermineStatus:
         mock_dlp.inspect_content.return_value = mock_test_response
         
         detector = PIIDetector("test-project")
-        status = detector._determine_status(0, dlp_v2.Likelihood.LIKELIHOOD_UNSPECIFIED)
+        status = detector._determine_status(0, 0)
         
         assert status == "clean"
     
     @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
-    def test_status_high_risk_very_likely(self, mock_dlp_class):
+    @patch('app.rag.pii_detector.dlp_v2.Likelihood')
+    def test_status_high_risk_very_likely(self, mock_likelihood, mock_dlp_class):
         """Test high risk status (VERY_LIKELY)."""
         mock_dlp = MagicMock()
         mock_dlp_class.return_value = mock_dlp
         
+        # Mock enum values
+        mock_likelihood.VERY_LIKELY = 5
+        mock_likelihood.LIKELY = 4
+        mock_likelihood.POSSIBLE = 3
+        
         mock_test_response = MagicMock()
         mock_test_response.result.findings = []
         mock_dlp.inspect_content.return_value = mock_test_response
         
         detector = PIIDetector("test-project")
-        status = detector._determine_status(1, dlp_v2.Likelihood.VERY_LIKELY)
+        status = detector._determine_status(1, 5)
         
         assert status == "high_risk"
     
     @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
-    def test_status_high_risk_likely(self, mock_dlp_class):
+    @patch('app.rag.pii_detector.dlp_v2.Likelihood')
+    def test_status_high_risk_likely(self, mock_likelihood, mock_dlp_class):
         """Test high risk status (LIKELY)."""
         mock_dlp = MagicMock()
         mock_dlp_class.return_value = mock_dlp
         
+        # Mock enum values
+        mock_likelihood.VERY_LIKELY = 5
+        mock_likelihood.LIKELY = 4
+        mock_likelihood.POSSIBLE = 3
+        
         mock_test_response = MagicMock()
         mock_test_response.result.findings = []
         mock_dlp.inspect_content.return_value = mock_test_response
         
         detector = PIIDetector("test-project")
-        status = detector._determine_status(1, dlp_v2.Likelihood.LIKELY)
+        status = detector._determine_status(1, 4)
         
         assert status == "high_risk"
     
     @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
-    def test_status_low_risk_possible(self, mock_dlp_class):
+    @patch('app.rag.pii_detector.dlp_v2.Likelihood')
+    def test_status_low_risk_possible(self, mock_likelihood, mock_dlp_class):
         """Test low risk status (POSSIBLE)."""
         mock_dlp = MagicMock()
         mock_dlp_class.return_value = mock_dlp
+        
+        # Mock enum values
+        mock_likelihood.VERY_LIKELY = 5
+        mock_likelihood.LIKELY = 4
+        mock_likelihood.POSSIBLE = 3
         
         mock_test_response = MagicMock()
         mock_test_response.result.findings = []
         mock_dlp.inspect_content.return_value = mock_test_response
         
         detector = PIIDetector("test-project")
-        status = detector._determine_status(1, dlp_v2.Likelihood.POSSIBLE)
+        status = detector._determine_status(1, 3)
         
         assert status == "low_risk"
 
