@@ -9,32 +9,35 @@ import sys
 # Mock vertexai before importing
 sys.modules['vertexai'] = MagicMock()
 sys.modules['vertexai.generative_models'] = MagicMock()
+sys.modules['vertexai.language_models'] = MagicMock()
 
-from app.rag.generator import AnswerGenerator
+from app.rag.generator import GeminiGenerator
 
 
-class TestAnswerGenerator:
+class TestGeminiGenerator:
     """Test answer generation functionality."""
     
     @pytest.fixture
-    def mock_generative_model(self, mocker):
+    def mock_generative_model(self):
         """Mock Vertex AI generative model."""
-        mock_model = mocker.Mock()
-        mock_response = mocker.Mock()
+        mock_model = MagicMock()
+        mock_response = MagicMock()
         mock_response.text = "Test answer"
         mock_model.generate_content.return_value = mock_response
         return mock_model
     
     @pytest.fixture
-    def generator(self, mock_generative_model, mocker):
+    def generator(self, mock_generative_model):
         """Create generator with mocked dependencies."""
-        mocker.patch('app.rag.generator.GenerativeModel', return_value=mock_generative_model)
-        return AnswerGenerator()
+        with patch('app.rag.generator.vertexai.init'):
+            with patch('app.rag.generator.GenerativeModel', return_value=mock_generative_model):
+                generator = GeminiGenerator(project="test-project", location="us-central1")
+                return generator
     
     def test_generate_answer_basic(self, generator, mock_generative_model):
         """Test basic answer generation."""
         question = "What is machine learning?"
-        contexts = ["Machine learning is a subset of AI."]
+        contexts = [{"text": "Machine learning is a subset of AI."}]
         
         result = generator.generate(question, contexts)
         
@@ -47,7 +50,7 @@ class TestAnswerGenerator:
         """Test generation with multiple context chunks."""
         question = "Explain AI"
         contexts = [
-            "AI stands for Artificial Intelligence.",
+            {"text": "AI stands for Artificial Intelligence."},
             "AI includes machine learning and deep learning.",
             "AI is used in many applications."
         ]

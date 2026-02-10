@@ -10,44 +10,37 @@ import sys
 sys.modules['vertexai'] = MagicMock()
 sys.modules['vertexai.language_models'] = MagicMock()
 
-from app.rag.embeddings import EmbeddingGenerator
+from app.rag.embeddings import VertexTextEmbedder
 
 
-class TestEmbeddingGenerator:
+class TestVertexTextEmbedder:
     """Test embedding generation functionality."""
     
     @pytest.fixture
-    def mock_vertex_model(self, mocker):
+    def mock_vertex_model(self):
         """Mock Vertex AI embedding model."""
-        mock_model = mocker.Mock()
-        mock_embedding = mocker.Mock()
+        mock_model = MagicMock()
+        mock_embedding = MagicMock()
         mock_embedding.values = [0.1] * 768
         mock_model.get_embeddings.return_value = [mock_embedding]
         return mock_model
     
     @pytest.fixture
-    def mock_redis(self, mocker):
-        """Mock Redis client."""
-        mock_client = mocker.Mock()
-        mock_client.get.return_value = None
-        mock_client.set.return_value = True
-        mock_client.ping.return_value = True
-        return mock_client
+    def embedder(self, mock_vertex_model):
+        """Create embedder with mocked dependencies."""
+        with patch('app.rag.embeddings.aiplatform.init'):
+            with patch('app.rag.embeddings.TextEmbeddingModel.from_pretrained', return_value=mock_vertex_model):
+                embedder = VertexTextEmbedder(project="test-project", location="us-central1")
+                return embedder
     
-    @pytest.fixture
-    def generator(self, mock_vertex_model, mock_redis, mocker):
-        """Create generator with mocked dependencies."""
-        mocker.patch('app.rag.embeddings.TextEmbeddingModel.from_pretrained', return_value=mock_vertex_model)
-        mocker.patch('app.rag.embeddings.redis.Redis', return_value=mock_redis)
-        return EmbeddingGenerator()
-    
-    def test_generate_single_embedding(self, generator, mock_vertex_model):
-        """Test generating single embedding."""
-        text = "Test text"
-        result = generator.generate(text)
+    def test_embed_single_text(self, embedder, mock_vertex_model):
+        """Test embedding single text."""
+        texts = ["Test text"]
+        result = embedder.embed(texts)
         
         assert result is not None
-        assert len(result) == 768
+        assert len(result) == 1
+        assert len(result[0]) == 768
         assert all(isinstance(x, float) for x in result)
         mock_vertex_model.get_embeddings.assert_called_once()
     

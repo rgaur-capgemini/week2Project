@@ -6,48 +6,53 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 import sys
 
-# Mock vertexai before importing
+# Mock vertexai and google cloud modules
 sys.modules['vertexai'] = MagicMock()
 sys.modules['vertexai.matching_engine'] = MagicMock()
 
-from app.rag.vector_store import VectorStore
+from app.rag.vector_store import VertexVectorStore
 
 
-class TestVectorStore:
+class TestVertexVectorStore:
     """Test vector store functionality."""
     
     @pytest.fixture
-    def mock_index_endpoint(self, mocker):
+    def mock_index_endpoint(self):
         """Mock Vertex AI Index Endpoint."""
-        mock_endpoint = mocker.Mock()
-        mock_response = mocker.Mock()
-        mock_response[0] = [
-            mocker.Mock(id="doc1-0", distance=0.1),
-            mocker.Mock(id="doc1-1", distance=0.2)
-        ]
-        mock_endpoint.match.return_value = mock_response
+        mock_endpoint = MagicMock()
+        mock_neighbor = MagicMock()
+        mock_neighbor.id = "doc1-0"
+        mock_neighbor.distance = 0.1
+        mock_endpoint.match.return_value = [[mock_neighbor]]
         return mock_endpoint
     
     @pytest.fixture
-    def vector_store(self, mock_index_endpoint, mocker):
+    def vector_store(self, mock_index_endpoint):
         """Create vector store with mocked dependencies."""
-        mocker.patch('app.rag.vector_store.aiplatform.MatchingEngineIndexEndpoint', 
-                     return_value=mock_index_endpoint)
-        return VectorStore()
+        with patch('app.rag.vector_store.aiplatform.init'):
+            with patch('app.rag.vector_store.MatchingEngineIndexEndpoint', return_value=mock_index_endpoint):
+                store = VertexVectorStore(
+                    project="test-project",
+                    location="us-central1",
+                    index_id="test-index",
+                    index_endpoint_name="test-endpoint"
+                )
+                return store
     
-    def test_search_basic(self, vector_store, mock_index_endpoint):
-        """Test basic vector search."""
-        query_embedding = [0.1] * 768
-        top_k = 5
+    def test_add_chunks(self, vector_store):
+        """Test adding chunks to store."""
+        chunks = [
+            {"chunk_id": "chunk1", "text": "Test text 1"},
+            {"chunk_id": "chunk2", "text": "Test text 2"}
+        ]
         
-        result = vector_store.search(query_embedding, top_k=top_k)
+        vector_store.add_chunks(chunks)
         
-        assert result is not None
-        assert isinstance(result, list)
-        mock_index_endpoint.match.assert_called_once()
+        assert len(vector_store.chunk_store) == 2
+        assert "chunk1" in vector_store.chunk_store
     
-    def test_search_returns_correct_format(self, vector_store):
-        """Test that search returns properly formatted results."""
+    def test_get_chunk(self, vector_store):
+        """Test retrieving chunk by ID."""
         query_embedding = [0.1] * 768
         
         result = vector_store.search(query_embedding)
