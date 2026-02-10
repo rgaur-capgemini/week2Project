@@ -356,7 +356,7 @@ steps:
           --junitxml=test-results/junit.xml \
           2>&1 | tee test-output.log
         
-        TEST_EXIT_CODE=${PIPESTATUS[0]}
+        TEST_EXIT_CODE=$${PIPESTATUS[0]}
         
         echo ""
         echo "========================================"
@@ -364,14 +364,14 @@ steps:
         echo "========================================"
         
         # Count test results
-        PASSED=$(grep -c "PASSED" test-output.log || echo "0")
-        FAILED=$(grep -c "FAILED" test-output.log || echo "0")
-        ERRORS=$(grep -c "ERROR" test-output.log || echo "0")
+        PASSED=$$(grep -c "PASSED" test-output.log || echo "0")
+        FAILED=$$(grep -c "FAILED" test-output.log || echo "0")
+        ERRORS=$$(grep -c "ERROR" test-output.log || echo "0")
         
-        echo "✅ Passed: $PASSED"
-        echo "❌ Failed: $FAILED"
-        echo "⚠️  Errors: $ERRORS"
-        echo "Exit Code: $TEST_EXIT_CODE"
+        echo "✅ Passed: $$PASSED"
+        echo "❌ Failed: $$FAILED"
+        echo "⚠️  Errors: $$ERRORS"
+        echo "Exit Code: $$TEST_EXIT_CODE"
         
         # Show coverage summary
         echo ""
@@ -381,7 +381,7 @@ steps:
         coverage report --precision=2 2>&1 || echo "Coverage report not available"
         
         # Show first 30 failures for debugging
-        if [ $FAILED -gt 0 ]; then
+        if [ $$FAILED -gt 0 ]; then
           echo ""
           echo "========================================"
           echo "🔍 First 30 Test Failures (for debugging)"
@@ -396,7 +396,7 @@ steps:
         fi
         
         # Show errors if any
-        if [ $ERRORS -gt 0 ]; then
+        if [ $$ERRORS -gt 0 ]; then
           echo ""
           echo "========================================"
           echo "⚠️  Test Collection Errors"
@@ -415,7 +415,7 @@ steps:
         echo "========================================"
         
         # For now, continue build even if tests fail (non-blocking)
-        if [ $TEST_EXIT_CODE -ne 0 ]; then
+        if [ $$TEST_EXIT_CODE -ne 0 ]; then
           echo ""
           echo "⚠️  WARNING: Tests failed but build will continue (non-blocking mode)"
           echo "⚠️  Review failures above and see docs/TEST_DEBUGGING_GUIDE.md"
@@ -618,8 +618,8 @@ steps:
         rm /tmp/chrome.deb
         
         # Set CHROME_BIN environment variable
-        export CHROME_BIN=$(which google-chrome-stable)
-        echo "Chrome installed at: $CHROME_BIN"
+        export CHROME_BIN=$$(which google-chrome-stable)
+        echo "Chrome installed at: $$CHROME_BIN"
         
         # Verify Chrome installation
         google-chrome-stable --version
@@ -632,13 +632,13 @@ steps:
         # Run tests with timeout protection
         set +e
         timeout 300 npm run test:ci 2>&1 | tee test-output.log
-        TEST_EXIT_CODE=${PIPESTATUS[0]}
+        TEST_EXIT_CODE=$${PIPESTATUS[0]}
         
-        if [ $TEST_EXIT_CODE -eq 124 ]; then
+        if [ $$TEST_EXIT_CODE -eq 124 ]; then
           echo "⚠️  Tests timed out after 300 seconds"
           echo "Trying with standard ChromeHeadless..."
           timeout 300 npm run test:coverage 2>&1 | tee -a test-output.log
-          TEST_EXIT_CODE=${PIPESTATUS[0]}
+          TEST_EXIT_CODE=$${PIPESTATUS[0]}
         fi
         
         # Show test summary
@@ -648,8 +648,8 @@ steps:
         echo "========================================"
         grep -E "TOTAL|SUCCESS|FAILED" test-output.log || echo "No test results found"
         
-        if [ $TEST_EXIT_CODE -ne 0 ]; then
-          echo "⚠️  Frontend tests failed (exit code: $TEST_EXIT_CODE)"
+        if [ $$TEST_EXIT_CODE -ne 0 ]; then
+          echo "⚠️  Frontend tests failed (exit code: $$TEST_EXIT_CODE)"
           echo "⚠️  Continuing build in non-blocking mode"
         else
           echo "✅ All frontend tests passed!"
