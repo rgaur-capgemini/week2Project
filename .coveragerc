@@ -8,6 +8,7 @@ omit =
     */env/*
     */__init__.py
     */site-packages/*
+branch = True
 
 [report]
 precision = 2
@@ -24,4 +25,7 @@ exclude_lines =
     @(abc\.)?abstractmethod
 
 [html]
-directory = htmlcov
+directory = coverage-reports/html
+
+[xml]
+output = coverage-reports/coverage.xml
