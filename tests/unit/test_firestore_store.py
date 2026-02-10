@@ -347,3 +347,75 @@ class TestAdvancedFeatures:
         if hasattr(store, 'delete_chunk'):
             result = store.delete_chunk("chunk-123")
             assert isinstance(result, bool)
+
+
+class TestCountChunks:
+    """Test count_chunks method."""
+    
+    @patch('app.storage.firestore_store.firestore.Client')
+    def test_count_chunks_success(self, mock_firestore_class):
+        """Test counting chunks successfully."""
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_query = MagicMock()
+        mock_result = MagicMock()
+        mock_result.value = 100
+        
+        mock_query.get.return_value = [[mock_result]]
+        mock_collection.count.return_value = mock_query
+        mock_db.collection.return_value = mock_collection
+        mock_firestore_class.return_value = mock_db
+        
+        store = FirestoreChunkStore(project_id="test-project")
+        count = store.count_chunks()
+        
+        assert count == 100
+    
+    @patch('app.storage.firestore_store.firestore.Client')
+    def test_count_chunks_fallback_to_stream(self, mock_firestore_class):
+        """Test count chunks fallback to manual count."""
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        
+        # Make count() raise exception
+        mock_collection.count.side_effect = Exception("Count not supported")
+        
+        # Mock stream() for fallback
+        mock_collection.stream.return_value = [1, 2, 3, 4, 5]  # 5 items
+        mock_db.collection.return_value = mock_collection
+        mock_firestore_class.return_value = mock_db
+        
+        store = FirestoreChunkStore(project_id="test-project")
+        count = store.count_chunks()
+        
+        assert count == 5
+    
+    @patch('app.storage.firestore_store.firestore.Client')
+    def test_count_chunks_all_methods_fail(self, mock_firestore_class):
+        """Test count when both methods fail."""
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        
+        # Both methods fail
+        mock_collection.count.side_effect = Exception("Count failed")
+        mock_collection.stream.side_effect = Exception("Stream failed")
+        mock_db.collection.return_value = mock_collection
+        mock_firestore_class.return_value = mock_db
+        
+        store = FirestoreChunkStore(project_id="test-project")
+        count = store.count_chunks()
+        
+        assert count == 0
+    
+    @patch('app.storage.firestore_store.firestore.Client')
+    def test_count_chunks_no_collection(self, mock_firestore_class):
+        """Test count when collection is None."""
+        mock_db = MagicMock()
+        mock_db.collection.return_value = None
+        mock_firestore_class.return_value = mock_db
+        
+        store = FirestoreChunkStore(project_id="test-project")
+        store.collection = None
+        
+        count = store.count_chunks()
+        assert count == 0

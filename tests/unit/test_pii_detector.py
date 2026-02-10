@@ -192,6 +192,148 @@ class TestDetectPII:
         assert isinstance(result, dict)
 
 
+class TestRedactPII:
+    """Test PII redaction functionality."""
+    
+    @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
+    def test_redact_pii_no_client(self, mock_dlp_class):
+        """Test redaction when client not initialized."""
+        mock_dlp_class.side_effect = Exception("DLP not available")
+        
+        detector = PIIDetector("test-project")
+        text = "Email: test@example.com"
+        result = detector.redact_pii(text)
+        
+        # Should return original text when client unavailable
+        assert result == text
+    
+    @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
+    def test_redact_pii_with_email(self, mock_dlp_class):
+        """Test redacting email addresses."""
+        mock_dlp = MagicMock()
+        mock_dlp_class.return_value = mock_dlp
+        
+        # Mock initial test
+        mock_test_response = MagicMock()
+        mock_test_response.result.findings = []
+        
+        # Mock redaction
+        mock_redact_response = MagicMock()
+        mock_redact_response.item.value = "Email: [REDACTED]"
+        
+        mock_dlp.inspect_content.return_value = mock_test_response
+        mock_dlp.deidentify_content.return_value = mock_redact_response
+        
+        detector = PIIDetector("test-project")
+        result = detector.redact_pii("Email: test@example.com")
+        
+        assert "[REDACTED]" in result
+    
+    @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
+    def test_redact_pii_custom_info_types(self, mock_dlp_class):
+        """Test redaction with custom info types."""
+        mock_dlp = MagicMock()
+        mock_dlp_class.return_value = mock_dlp
+        
+        mock_test_response = MagicMock()
+        mock_test_response.result.findings = []
+        
+        mock_redact_response = MagicMock()
+        mock_redact_response.item.value = "Phone: [REDACTED]"
+        
+        mock_dlp.inspect_content.return_value = mock_test_response
+        mock_dlp.deidentify_content.return_value = mock_redact_response
+        
+        detector = PIIDetector("test-project")
+        result = detector.redact_pii("Phone: 555-1234", info_types=["PHONE_NUMBER"])
+        
+        assert isinstance(result, str)
+    
+    @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
+    def test_redact_pii_error_returns_original(self, mock_dlp_class):
+        """Test that redaction errors return original text."""
+        mock_dlp = MagicMock()
+        mock_dlp_class.return_value = mock_dlp
+        
+        mock_test_response = MagicMock()
+        mock_test_response.result.findings = []
+        mock_dlp.inspect_content.return_value = mock_test_response
+        
+        # Deidentify raises exception
+        mock_dlp.deidentify_content.side_effect = Exception("Redaction failed")
+        
+        detector = PIIDetector("test-project")
+        text = "Email: test@example.com"
+        result = detector.redact_pii(text)
+        
+        # Should return original text on error
+        assert result == text
+
+
+class TestDetermineStatus:
+    """Test status determination logic."""
+    
+    @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
+    def test_status_clean(self, mock_dlp_class):
+        """Test clean status (no PII)."""
+        mock_dlp = MagicMock()
+        mock_dlp_class.return_value = mock_dlp
+        
+        mock_test_response = MagicMock()
+        mock_test_response.result.findings = []
+        mock_dlp.inspect_content.return_value = mock_test_response
+        
+        detector = PIIDetector("test-project")
+        status = detector._determine_status(0, dlp_v2.Likelihood.LIKELIHOOD_UNSPECIFIED)
+        
+        assert status == "clean"
+    
+    @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
+    def test_status_high_risk_very_likely(self, mock_dlp_class):
+        """Test high risk status (VERY_LIKELY)."""
+        mock_dlp = MagicMock()
+        mock_dlp_class.return_value = mock_dlp
+        
+        mock_test_response = MagicMock()
+        mock_test_response.result.findings = []
+        mock_dlp.inspect_content.return_value = mock_test_response
+        
+        detector = PIIDetector("test-project")
+        status = detector._determine_status(1, dlp_v2.Likelihood.VERY_LIKELY)
+        
+        assert status == "high_risk"
+    
+    @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
+    def test_status_high_risk_likely(self, mock_dlp_class):
+        """Test high risk status (LIKELY)."""
+        mock_dlp = MagicMock()
+        mock_dlp_class.return_value = mock_dlp
+        
+        mock_test_response = MagicMock()
+        mock_test_response.result.findings = []
+        mock_dlp.inspect_content.return_value = mock_test_response
+        
+        detector = PIIDetector("test-project")
+        status = detector._determine_status(1, dlp_v2.Likelihood.LIKELY)
+        
+        assert status == "high_risk"
+    
+    @patch('app.rag.pii_detector.dlp_v2.DlpServiceClient')
+    def test_status_low_risk_possible(self, mock_dlp_class):
+        """Test low risk status (POSSIBLE)."""
+        mock_dlp = MagicMock()
+        mock_dlp_class.return_value = mock_dlp
+        
+        mock_test_response = MagicMock()
+        mock_test_response.result.findings = []
+        mock_dlp.inspect_content.return_value = mock_test_response
+        
+        detector = PIIDetector("test-project")
+        status = detector._determine_status(1, dlp_v2.Likelihood.POSSIBLE)
+        
+        assert status == "low_risk"
+
+
 class TestEdgeCases:
     """Test edge cases and error conditions."""
     
