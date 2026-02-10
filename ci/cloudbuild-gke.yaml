@@ -324,28 +324,146 @@ steps:
     args:
       - '-c'
       - |
-        set -e  # Exit immediately if any command fails
-        echo "Installing dependencies from requirements.txt..."
-        pip install -r requirements.txt || { echo "ERROR: Failed to install requirements.txt"; exit 1; }
-        echo "Installing test dependencies..."
-        pip install pytest pytest-cov pytest-asyncio pytest-mock || { echo "ERROR: Failed to install test deps"; exit 1; }
-        echo "Running tests with coverage..."
-        pytest --cov=app --cov-report=html:coverage-reports/html --cov-report=xml:coverage-reports/coverage.xml --cov-report=term-missing --cov-branch || echo "⚠️ Tests failed (continuing build)"
-        echo "✓ Backend tests completed"
+        set +e  # Don't exit immediately - we want to capture all failures
+        echo "========================================"
+        echo "Backend Test Execution - Started"
+        echo "Build ID: ${BUILD_ID}"
+        echo "Commit SHA: ${COMMIT_SHA}"
+        echo "========================================"
+        
+        echo ""
+        echo "📦 Installing dependencies from requirements.txt..."
+        pip install -r requirements.txt || { echo "❌ ERROR: Failed to install requirements.txt"; exit 1; }
+        
+        echo ""
+        echo "📦 Installing test dependencies..."
+        pip install pytest pytest-cov pytest-asyncio pytest-mock || { echo "❌ ERROR: Failed to install test deps"; exit 1; }
+        
+        echo ""
+        echo "🧪 Running tests with coverage..."
+        echo "Command: pytest --cov=app --cov-report=html --cov-report=xml --cov-report=term-missing --cov-branch -v"
+        echo "========================================"
+        
+        # Run tests and capture output
+        pytest --cov=app \
+          --cov-report=html:coverage-reports/html \
+          --cov-report=xml:coverage-reports/coverage.xml \
+          --cov-report=term-missing \
+          --cov-branch \
+          -v \
+          --tb=short \
+          --maxfail=50 \
+          --junitxml=test-results/junit.xml \
+          2>&1 | tee test-output.log
+        
+        TEST_EXIT_CODE=${PIPESTATUS[0]}
+        
+        echo ""
+        echo "========================================"
+        echo "📊 Test Execution Summary"
+        echo "========================================"
+        
+        # Count test results
+        PASSED=$(grep -c "PASSED" test-output.log || echo "0")
+        FAILED=$(grep -c "FAILED" test-output.log || echo "0")
+        ERRORS=$(grep -c "ERROR" test-output.log || echo "0")
+        
+        echo "✅ Passed: $PASSED"
+        echo "❌ Failed: $FAILED"
+        echo "⚠️  Errors: $ERRORS"
+        echo "Exit Code: $TEST_EXIT_CODE"
+        
+        # Show coverage summary
+        echo ""
+        echo "========================================"
+        echo "📈 Coverage Summary"
+        echo "========================================"
+        coverage report --precision=2 2>&1 || echo "Coverage report not available"
+        
+        # Show first 30 failures for debugging
+        if [ $FAILED -gt 0 ]; then
+          echo ""
+          echo "========================================"
+          echo "🔍 First 30 Test Failures (for debugging)"
+          echo "========================================"
+          grep "FAILED" test-output.log | head -30
+          
+          echo ""
+          echo "========================================"
+          echo "🔍 Sample Error Details (first 5)"
+          echo "========================================"
+          grep -A 10 "FAILED" test-output.log | head -60
+        fi
+        
+        # Show errors if any
+        if [ $ERRORS -gt 0 ]; then
+          echo ""
+          echo "========================================"
+          echo "⚠️  Test Collection Errors"
+          echo "========================================"
+          grep "ERROR" test-output.log | head -20
+        fi
+        
+        echo ""
+        echo "========================================"
+        echo "📝 Debugging Instructions"
+        echo "========================================"
+        echo "1. Download full log: gcloud builds log ${BUILD_ID} > build-log.txt"
+        echo "2. View test output: grep 'FAILED\\|ERROR' build-log.txt"
+        echo "3. See debugging guide: docs/TEST_DEBUGGING_GUIDE.md"
+        echo "4. Run locally: pytest tests/unit/test_main.py -vvs --tb=long"
+        echo "========================================"
+        
+        # For now, continue build even if tests fail (non-blocking)
+        if [ $TEST_EXIT_CODE -ne 0 ]; then
+          echo ""
+          echo "⚠️  WARNING: Tests failed but build will continue (non-blocking mode)"
+          echo "⚠️  Review failures above and see docs/TEST_DEBUGGING_GUIDE.md"
+          echo "⚠️  To make tests blocking, remove '|| echo' from pytest command"
+        else
+          echo ""
+          echo "✅ All tests passed successfully!"
+        fi
+        
+        echo ""
+        echo "✓ Backend test step completed"
     dir: '.'
     waitFor: ['-']
 
-  # Step 1a: Upload Backend Coverage Report (Non-blocking)
+  # Step 1a: Upload Backend Coverage Report and Test Logs (Non-blocking)
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'upload-backend-coverage'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "Uploading backend coverage reports..."
+        echo "========================================"
+        echo "📤 Uploading Test Artifacts"
+        echo "========================================"
+        
+        # Create bucket if it doesn't exist
         gsutil mb gs://${_PROJECT_ID}-test-reports/ 2>/dev/null || echo "Bucket already exists"
-        gsutil -m cp -r coverage-reports/* gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/backend-coverage/ || echo "⚠️ Coverage upload failed (continuing build)"
-        echo "✓ Backend coverage upload completed"
+        
+        # Upload coverage reports
+        echo "Uploading coverage reports..."
+        gsutil -m cp -r coverage-reports/* gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/backend-coverage/ 2>&1 || echo "⚠️ Coverage upload failed"
+        
+        # Upload test output log
+        echo "Uploading test output log..."
+        gsutil cp test-output.log gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/test-output.log 2>&1 || echo "⚠️ Test log upload failed"
+        
+        # Upload JUnit XML
+        echo "Uploading JUnit XML..."
+        gsutil cp test-results/junit.xml gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/junit.xml 2>&1 || echo "⚠️ JUnit upload failed"
+        
+        echo ""
+        echo "✓ Test artifacts uploaded to: gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/"
+        echo ""
+        echo "📊 View reports:"
+        echo "   Coverage HTML: gsutil cp -r gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/backend-coverage/ ."
+        echo "   Test Log: gsutil cat gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/test-output.log"
+        echo "   JUnit XML: gsutil cat gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/junit.xml"
+        echo "========================================"
     dir: '.'
     waitFor: ['backend-test']
 
