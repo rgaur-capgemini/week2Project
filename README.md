@@ -61,6 +61,7 @@ Enterprise-grade Retrieval-Augmented Generation (RAG) chatbot with **full-stack 
 - Cloud Build CI/CD pipelines
 - Infrastructure as Code (Terraform)
 - Blue-green deployments
+- **SBOM generation (SPDX + CycloneDX)**
 - Comprehensive operational runbooks  
 
 ---
@@ -337,6 +338,22 @@ record_embedding(latency_ms=200, num_tokens=512)
 record_tokens(prompt_tokens=100, completion_tokens=200)
 ```
 
+### SBOM & Vulnerability Monitoring
+
+```bash
+# Download latest SBOM
+BUILD_ID=$(gcloud builds list --limit=1 --format="value(id)")
+gsutil cp gs://btoproject-486405-486604-sbom/${BUILD_ID}/backend-sbom.spdx.json .
+
+# Scan for vulnerabilities
+grype sbom:backend-sbom.spdx.json --severity critical,high
+
+# View SBOM in Cloud Storage
+gsutil ls gs://btoproject-486405-486604-sbom/${BUILD_ID}/
+```
+
+See [SBOM.md](docs/SBOM.md) for complete SBOM documentation.
+
 ---
 
 ## 🧪 Testing
@@ -502,6 +519,7 @@ hey -n 1000 -c 50 -m POST \
 │   ├── architecture.md                 # Architecture documentation
 │   ├── DEPLOYMENT_GUIDE.md             # Deployment procedures (508 lines)
 │   ├── SRE_RUNBOOK.md                  # Incident response (545 lines)
+│   ├── SBOM.md                         # ⭐ NEW: SBOM documentation
 │   ├── openapi.yaml                    # API specification
 │   └── runbooks/                       # ⭐ NEW: Operational runbooks
 │       ├── README.md                   # Runbook index
@@ -541,6 +559,7 @@ hey -n 1000 -c 50 -m POST \
 
 ### Operations & SRE
 - **[SRE_RUNBOOK.md](docs/SRE_RUNBOOK.md)** - Incident response procedures (545 lines)
+- **[SBOM.md](docs/SBOM.md)** - Software Bill of Materials documentation
 - **[runbooks/rollback.md](docs/runbooks/rollback.md)** - Emergency rollback procedures
 - **[runbooks/backup-restore.md](docs/runbooks/backup-restore.md)** - Backup & disaster recovery
 - **[runbooks/certificate-rotation.md](docs/runbooks/certificate-rotation.md)** - Credential rotation
@@ -612,6 +631,9 @@ hey -n 1000 -c 50 -m POST \
 - ✅ Blue-green deployments
 - ✅ Rollback procedures
 - ✅ Infrastructure as Code (Terraform)
+- ✅ **SBOM generation (SPDX + CycloneDX)**
+- ✅ **Vulnerability scanning**
+- ✅ **Artifact versioning and storage**
 
 ### Operational Runbooks (NEW)
 - ✅ Emergency rollback procedures
@@ -647,6 +669,9 @@ hey -n 1000 -c 50 -m POST \
 
 ### Compliance & Auditing
 - ✅ Cloud Audit Logs enabled
+- ✅ **SBOM generation (meets NTIA requirements)**
+- ✅ **Software supply chain transparency**
+- ✅ **EO 14028 compliance (SBOM)**
 - ✅ Structured logging for forensics
 - ✅ Access logs for all API calls
 - ✅ Regular security audits (see runbooks)
@@ -772,9 +797,13 @@ For issues or questions:
 - [ ] Multi-region deployment (DR)
 - [ ] Advanced caching strategies
 - [ ] Performance optimizations
-- [ ] Enhanced admin dashboard
-
-### Planned 📋
+- [ **Added SBOM generation (SPDX + CycloneDX formats)**
+- ✅ **Automated SBOM generation in CI/CD pipeline**
+- ✅ **SBOM storage and versioning in GCS**
+- ✅ Comprehensive README update
+- ✅ Updated documentation to reflect current state
+- ✅ Added runbooks directory with 4 detailed operational procedures
+- ✅ SBOM documentation with compliance guidelin
 - [ ] Multi-language support (i18n)
 - [ ] Advanced RAG techniques (graph RAG, agentic RAG)
 - [ ] Fine-tuning custom embeddings
