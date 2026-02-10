@@ -387,7 +387,7 @@ steps:
   # Step 6: Generate SBOM for backend (SPDX + CycloneDX)
   - name: 'anchore/syft:latest'
     id: 'generate-sbom-backend'
-    entrypoint: 'sh'
+    entrypoint: 'bash'
     args:
       - '-c'
       - |
@@ -403,7 +403,7 @@ steps:
   # Step 6a: Generate Container Image SBOM
   - name: 'anchore/syft:latest'
     id: 'generate-sbom-backend-image'
-    entrypoint: 'sh'
+    entrypoint: 'bash'
     args:
       - '-c'
       - |
@@ -565,7 +565,7 @@ steps:
   # Step 16a: Generate Frontend Container Image SBOM
   - name: 'anchore/syft:latest'
     id: 'generate-sbom-frontend-image'
-    entrypoint: 'sh'
+    entrypoint: 'bash'
     args:
       - '-c'
       - |
