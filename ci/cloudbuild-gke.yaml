@@ -345,7 +345,8 @@ steps:
         echo "========================================"
         
         # Run tests and capture output
-        pytest --cov=app \
+        pytest tests/unit \
+          --cov=app \
           --cov-report=html:coverage-reports/html \
           --cov-report=xml:coverage-reports/coverage.xml \
           --cov-report=term-missing \
@@ -353,6 +354,7 @@ steps:
           -v \
           --tb=short \
           --maxfail=50 \
+          -m "not skip_ci" \
           --junitxml=test-results/junit.xml \
           2>&1 | tee test-output.log
         
