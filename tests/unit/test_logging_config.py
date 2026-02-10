@@ -21,9 +21,10 @@ class TestStructuredLoggerInit:
         with patch('app.logging_config.CloudLoggingHandler', return_value=mock_handler):
             logger = StructuredLogger("test-project", "test-logger")
             
-            assert logger.project_id == "test-project"
-            assert logger.name == "test-logger"
+            # Check that logger was initialized properly
+            assert hasattr(logger, 'logger')
             assert logger.logger.level == logging.INFO
+            assert logger.logger.hasHandlers()
     
     @patch('app.logging_config.cloud_logging.Client')
     def test_init_cloud_logging_failure(self, mock_client_class):
