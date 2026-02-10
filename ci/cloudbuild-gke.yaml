@@ -479,19 +479,25 @@ steps:
       - 'echo "SonarQube scan skipped - configure SONAR_TOKEN to enable"'
     waitFor: ['backend-test']
 
-  # Step 3: Security scanning with Trivy (BLOCKING on Critical/High - Required)
-  # Temporarily disabled to allow build - Angular vulnerabilities in frontend blocking backend scan
-  # - name: 'aquasec/trivy:latest'
-  #   id: 'security-scan-backend'
-  #   args:
-  #     - 'fs'
-  #     - '--severity'
-  #     - 'HIGH,CRITICAL'
-  #     - '--exit-code'
-  #     - '1'
-  #     - '--no-progress'
-  #     - '.'
-  #   waitFor: ['-']
+  # Step 3: Security scanning with Trivy (Non-blocking - vulnerabilities reported but don't fail build)
+  - name: 'aquasec/trivy:latest'
+    id: 'security-scan-backend'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "========================================"
+        echo "🔒 Backend Security Scan - Started"
+        echo "========================================"
+        trivy fs \
+          --severity HIGH,CRITICAL \
+          --format table \
+          --exit-code 0 \
+          --no-progress \
+          . || echo "⚠️ Vulnerabilities found but continuing build"
+        echo ""
+        echo "✓ Security scan completed (non-blocking)"
+    waitFor: ['-']
 
   # Step 4: Build backend Docker image
   - name: 'gcr.io/cloud-builders/docker'
@@ -714,18 +720,25 @@ steps:
       - 'echo "SonarQube scan skipped - configure SONAR_TOKEN to enable"'
     waitFor: ['frontend-test']
 
-  # Step 12: Security scanning for frontend with Trivy (DISABLED FOR TESTING)
-  # - name: 'aquasec/trivy:latest'
-  #   id: 'security-scan-frontend'
-  #   args:
-  #     - 'fs'
-  #     - '--severity'
-  #     - 'HIGH,CRITICAL'
-  #     - '--exit-code'
-  #     - '1'
-  #     - '--no-progress'
-  #     - './frontend'
-  #   waitFor: ['frontend-install']
+  # Step 12: Security scanning for frontend with Trivy (Non-blocking - vulnerabilities reported but don't fail build)
+  - name: 'aquasec/trivy:latest'
+    id: 'security-scan-frontend'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "========================================"
+        echo "🔒 Frontend Security Scan - Started"
+        echo "========================================"
+        trivy fs \
+          --severity HIGH,CRITICAL \
+          --format table \
+          --exit-code 0 \
+          --no-progress \
+          ./frontend || echo "⚠️ Vulnerabilities found but continuing build"
+        echo ""
+        echo "✓ Security scan completed (non-blocking)"
+    waitFor: ['frontend-install']
 
   # Step 13: Build frontend production bundle
   - name: 'node:20'
