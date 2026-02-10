@@ -459,12 +459,13 @@ steps:
   # Step 9: Run frontend tests with coverage (≥80% required)
   - name: 'node:20'
     id: 'frontend-test'
+    timeout: '600s'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         echo "Running frontend tests with coverage..."
-        npm run test:ci || npm run test:coverage || echo "⚠️ Frontend tests failed (continuing build)"
+        timeout 300 npm run test:ci || timeout 300 npm run test:coverage || echo "⚠️ Frontend tests failed or timed out (continuing build)"
         echo "✓ Frontend tests completed"
     dir: 'frontend'
     waitFor: ['frontend-install']

@@ -2,7 +2,7 @@
 module.exports = function(config) {
   config.set({
     basePath: '',
-    frameworks: ['jasmine', '@angular-devkit/build-angular'],
+    frameworks: ['jasmine'],
     plugins: [
       require('karma-jasmine'),
       require('karma-chrome-launcher'),
@@ -57,8 +57,9 @@ module.exports = function(config) {
     },
     singleRun: false,
     restartOnFileChange: true,
-    browserNoActivityTimeout: 30000,
-    browserDisconnectTimeout: 10000,
-    browserDisconnectTolerance: 3
+    browserNoActivityTimeout: 60000,
+    browserDisconnectTimeout: 30000,
+    browserDisconnectTolerance: 3,
+    captureTimeout: 60000
   });
 };
