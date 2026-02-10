@@ -384,41 +384,17 @@ steps:
   #         --project=${_PROJECT_ID}
   #   waitFor: ['build-backend']
 
-  # Step 6: Generate SBOM for backend (SPDX + CycloneDX)
-  - name: 'anchore/syft:latest'
-    id: 'generate-sbom-backend'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "===== Generating Backend SBOM ====="
-        # Generate SPDX format
-        syft dir:. -o spdx-json=backend-sbom.spdx.json || echo "⚠️  SBOM generation failed (continuing build)"
-        # Generate CycloneDX format
-        syft dir:. -o cyclonedx-json=backend-sbom.cdx.json || echo "⚠️  SBOM generation failed (continuing build)"
-        echo "✓ Backend SBOM generation completed"
-        ls -lh backend-sbom.* 2>/dev/null || echo "No SBOM files generated"
-    waitFor: ['build-backend']
+  # Step 6: Generate SBOM for backend (DISABLED - may interfere with image tags)
+  # - name: 'anchore/syft:latest'
+  #   id: 'generate-sbom-backend'
+  #   args:
+  #     - 'packages'
+  #     - '${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA'
+  #     - '-o'
+  #     - 'spdx-json=backend-sbom.json'
+  #   waitFor: ['build-backend']
 
-  # Step 6a: Generate Container Image SBOM
-  - name: 'anchore/syft:latest'
-    id: 'generate-sbom-backend-image'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "===== Generating Backend Container Image SBOM ====="
-        # Wait for image to be available
-        sleep 5
-        # Generate SBOM from Docker image (non-blocking)
-        syft ${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA -o spdx-json=backend-image-sbom.spdx.json || echo "⚠️  Image SBOM generation failed (continuing build)"
-        syft ${_ARTIFACT_REGISTRY}/backend:latest -o cyclonedx-json=backend-image-sbom.cdx.json || echo "⚠️  Image SBOM generation failed (continuing build)"
-        echo "✓ Backend container SBOM generation completed"
-        ls -lh backend-image-sbom.* 2>/dev/null || echo "No image SBOM files generated"
-        exit 0
-    waitFor: ['build-backend']
-
-  # Step 6b: Configure Docker authentication for Artifact Registry
+  # Step 6a: Configure Docker authentication for Artifact Registry
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'auth-backend'
     args:
@@ -546,38 +522,17 @@ steps:
   #         --project=${_PROJECT_ID}
   #   waitFor: ['build-frontend']
 
-  # Step 16: Generate SBOM for frontend (Node.js specific)
-  - name: 'node:20'
-    id: 'generate-sbom-frontend-deps'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "===== Generating Frontend Dependencies SBOM ====="
-        npm install -g @cyclonedx/cyclonedx-npm || echo "⚠️  Failed to install CycloneDX (continuing build)"
-        cd frontend
-        cyclonedx-npm --output-file ../frontend-deps-sbom.cdx.json || echo "⚠️  Frontend SBOM generation failed (continuing build)"
-        echo "✓ Frontend dependencies SBOM generation completed"
-        ls -lh ../frontend-deps-sbom.cdx.json 2>/dev/null || echo "No frontend SBOM files generated"
-        exit 0
-    waitFor: ['frontend-build']
+  # Step 16: Generate SBOM for frontend (DISABLED - may interfere with image tags)
+  # - name: 'anchore/syft:latest'
+  #   id: 'generate-sbom-frontend'
+  #   args:
+  #     - 'packages'
+  #     - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
+  #     - '-o'
+  #     - 'spdx-json=frontend-sbom.json'
+  #   waitFor: ['build-frontend']
 
-  # Step 16a: Generate Frontend Container Image SBOM
-  - name: 'anchore/syft:latest'
-    id: 'generate-sbom-frontend-image'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "===== Generating Frontend Container Image SBOM ====="
-        syft dir:frontend -o spdx-json=frontend-image-sbom.spdx.json || echo "⚠️  SBOM generation failed (continuing build)"
-        syft dir:frontend -o cyclonedx-json=frontend-image-sbom.cdx.json || echo "⚠️  SBOM generation failed (continuing build)"
-        echo "✓ Frontend container SBOM generation completed"
-        ls -lh frontend-image-sbom.* 2>/dev/null || echo "No frontend SBOM files generated"
-        exit 0
-    waitFor: ['build-frontend']
-
-  # Step 16b: Configure Docker authentication for Artifact Registry
+  # Step 16a: Configure Docker authentication for Artifact Registry
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'auth-frontend'
     args:
@@ -673,45 +628,14 @@ steps:
   #       python scripts/smoke_tests.py
   #   waitFor: ['verify-deployment']
 
-  # Step 20: Upload SBOMs to Cloud Storage (Non-blocking)
-  - name: 'gcr.io/cloud-builders/gsutil'
-    id: 'upload-sbom'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "===== Uploading SBOMs to Cloud Storage ====="
-        # Create SBOM directory structure
-        mkdir -p sbom-artifacts
-        mv *-sbom.*.json sbom-artifacts/ 2>/dev/null || echo "ℹ️  No SBOM files found to move"
-        
-        # Check if any SBOM files exist
-        if [ -z "$(ls -A sbom-artifacts/*.json 2>/dev/null)" ]; then
-          echo "⚠️  No SBOM files generated - skipping upload (build continues)"
-          exit 0
-        fi
-        
-        # Create metadata file
-        cat > sbom-artifacts/metadata.json <<EOF
-        {
-          "build_id": "$BUILD_ID",
-          "commit_sha": "$COMMIT_SHA",
-          "short_sha": "$SHORT_SHA",
-          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-          "project_id": "${_PROJECT_ID}",
-          "backend_image": "${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA",
-          "frontend_image": "${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA"
-        }
-        EOF
-        
-        # Upload to GCS (non-blocking)
-        gsutil mb gs://${_PROJECT_ID}-sbom/ 2>/dev/null || echo "Bucket already exists or cannot be created"
-        gsutil -m cp -r sbom-artifacts/* gs://${_PROJECT_ID}-sbom/$BUILD_ID/ || echo "⚠️  SBOM upload failed (continuing build)"
-        
-        echo "✓ SBOM upload step completed"
-        gsutil ls gs://${_PROJECT_ID}-sbom/$BUILD_ID/ 2>/dev/null || echo "⚠️  Could not list uploaded files"
-        exit 0
-    waitFor: ['generate-sbom-backend', 'generate-sbom-backend-image', 'generate-sbom-frontend-deps', 'generate-sbom-frontend-image']
+  # Step 20: Upload SBOMs to Cloud Storage (backend and frontend) - DISABLED
+  # - name: 'gcr.io/cloud-builders/gsutil'
+  #   id: 'upload-sbom'
+  #   args:
+  #     - 'cp'
+  #     - '*-sbom.json'
+  #     - 'gs://${_PROJECT_ID}-sbom/$BUILD_ID/'
+  #   waitFor: ['generate-sbom-backend', 'generate-sbom-frontend']
 
 # Store images (backend and frontend) - DISABLED (images already pushed in build steps)
 # images:
@@ -720,12 +644,15 @@ steps:
 #   - '${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA'
 #   - '${_ARTIFACT_REGISTRY}/frontend:latest'
 
-# Artifacts to save
-artifacts:
-  objects:
-    location: 'gs://btoproject-486405-486604-build-artifacts/$BUILD_ID'
-    paths:
-      - 'sbom-artifacts/*.json'
+# Artifacts to save - DISABLED (causing build failures)
+# artifacts:
+#   objects:
+#     location: 'gs://btoproject-486405-486604-build-artifacts/$BUILD_ID'
+#     paths:
+#       - '*.txt'  # Save any text files
+#       # - 'coverage.xml'  # Disabled - tests not running
+#       # - 'frontend/coverage/**'  # Disabled - tests not running
+#       # - '*-sbom.json'  # Disabled - SBOM generation not enabled
 
 # Build timeout
 timeout: 3600s
