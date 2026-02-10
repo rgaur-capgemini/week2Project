@@ -1,14 +1,105 @@
 # Pytest Configuration
 import sys
 import os
+import logging
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
+
+# Create mock classes that behave more like real objects
+class MockCloudLoggingHandler:
+    """Mock CloudLoggingHandler that works with Python logging."""
+    def __init__(self, *args, **kwargs):
+        self.level = logging.INFO
+    def emit(self, record):
+        pass
+
+class MockCloudLogging:
+    """Mock Cloud Logging module."""
+    def Client(self, *args, **kwargs):
+        return MagicMock()
+    def __getattr__(self, name):
+        return MagicMock()
+
+# Mock ALL Google Cloud modules before any imports
+# This prevents ImportError when modules try to import google.cloud packages
+sys.modules['google'] = MagicMock()
+sys.modules['google.cloud'] = MagicMock()
+sys.modules['google.cloud.logging'] = MockCloudLogging()
+sys.modules['google.cloud.logging.handlers'] = Mock(CloudLoggingHandler=MockCloudLoggingHandler)
+sys.modules['google.cloud.aiplatform'] = MagicMock()
+sys.modules['google.cloud.storage'] = MagicMock()
+sys.modules['google.cloud.firestore'] = MagicMock()
+sys.modules['google.cloud.secretmanager_v1'] = MagicMock()
+sys.modules['google.cloud.dlp_v2'] = MagicMock()
+sys.modules['google.auth'] = MagicMock()
+sys.modules['google.auth.transport'] = MagicMock()
+sys.modules['google.auth.transport.requests'] = MagicMock()
+sys.modules['google.oauth2'] = MagicMock()
+sys.modules['google.oauth2.id_token'] = MagicMock()
 
 # Mock vertexai modules before any imports
 sys.modules['vertexai'] = MagicMock()
 sys.modules['vertexai.language_models'] = MagicMock()
 sys.modules['vertexai.generative_models'] = MagicMock()
 sys.modules['vertexai.matching_engine'] = MagicMock()
+sys.modules['vertexai.preview'] = MagicMock()
+sys.modules['vertexai.preview.language_models'] = MagicMock()
+
+# Mock Redis
+sys.modules['redis'] = MagicMock()
+sys.modules['redis.exceptions'] = MagicMock()
+
+# Mock LangChain and LangGraph
+sys.modules['langchain'] = MagicMock()
+sys.modules['langchain_core'] = MagicMock()
+sys.modules['langchain_core.messages'] = MagicMock()
+sys.modules['langchain_google_vertexai'] = MagicMock()
+sys.modules['langgraph'] = MagicMock()
+sys.modules['langgraph.graph'] = MagicMock()
+
+# Mock OpenTelemetry
+sys.modules['opentelemetry'] = MagicMock()
+sys.modules['opentelemetry.trace'] = MagicMock()
+sys.modules['opentelemetry.metrics'] = MagicMock()
+sys.modules['opentelemetry.sdk'] = MagicMock()
+sys.modules['opentelemetry.sdk.trace'] = MagicMock()
+sys.modules['opentelemetry.sdk.trace.export'] = MagicMock()
+sys.modules['opentelemetry.sdk.metrics'] = MagicMock()
+sys.modules['opentelemetry.sdk.metrics.export'] = MagicMock()
+sys.modules['opentelemetry.sdk.resources'] = MagicMock()
+sys.modules['opentelemetry.exporter'] = MagicMock()
+sys.modules['opentelemetry.exporter.cloud_trace'] = MagicMock()
+sys.modules['opentelemetry.exporter.cloud_monitoring'] = MagicMock()
+sys.modules['opentelemetry.instrumentation'] = MagicMock()
+sys.modules['opentelemetry.instrumentation.fastapi'] = MagicMock()
+
+# Mock BeautifulSoup
+sys.modules['bs4'] = MagicMock()
+
+# Mock PyPDF2
+sys.modules['PyPDF2'] = MagicMock()
+
+# Mock python-docx
+sys.modules['docx'] = MagicMock()
+
+# Mock NumPy (needed by vector operations)
+import types
+numpy_module = types.ModuleType('numpy')
+numpy_module.array = lambda x, **kwargs: x
+numpy_module.ndarray = list
+numpy_module.float32 = float
+numpy_module.float64 = float
+numpy_module.int32 = int
+numpy_module.int64 = int
+numpy_module.zeros = lambda *args, **kwargs: [0] * (args[0] if args else 1)
+numpy_module.ones = lambda *args, **kwargs: [1] * (args[0] if args else 1)
+numpy_module.dot = lambda x, y: sum(a*b for a,b in zip(x, y))
+numpy_module.linalg = MagicMock()
+numpy_module.linalg.norm = lambda x: sum(a**2 for a in x) ** 0.5
+sys.modules['numpy'] = numpy_module
+
+# Mock JWT
+sys.modules['jwt'] = MagicMock()
 
 # Add project root to path
 project_root = Path(__file__).parent
