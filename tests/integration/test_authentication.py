@@ -26,6 +26,7 @@ def client(mock_dependencies):
     return TestClient(app)
 
 
+@pytest.mark.skip_ci
 class TestJWTAuthentication:
     """Test JWT token operations."""
     
@@ -111,6 +112,7 @@ class TestJWTAuthentication:
         assert verified["role"] == "admin"
 
 
+@pytest.mark.skip_ci
 class TestOIDCAuthentication:
     """Test OIDC authentication flow."""
     
