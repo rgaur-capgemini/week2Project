@@ -582,9 +582,80 @@ steps:
     args:
       - '-c'
       - |
+        set -e
+        echo "========================================"
+        echo "Frontend Test Setup - Installing Chrome"
+        echo "========================================"
+        
+        # Install Chrome dependencies
+        apt-get update -qq
+        apt-get install -y -qq --no-install-recommends \
+          wget \
+          gnupg \
+          ca-certificates \
+          fonts-liberation \
+          libasound2 \
+          libatk-bridge2.0-0 \
+          libatk1.0-0 \
+          libcups2 \
+          libdbus-1-3 \
+          libdrm2 \
+          libgbm1 \
+          libgtk-3-0 \
+          libnspr4 \
+          libnss3 \
+          libxcomposite1 \
+          libxdamage1 \
+          libxfixes3 \
+          libxrandr2 \
+          xdg-utils \
+          > /dev/null 2>&1
+        
+        # Install Chrome
+        echo "Installing Google Chrome..."
+        wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        apt-get install -y /tmp/chrome.deb > /dev/null 2>&1
+        rm /tmp/chrome.deb
+        
+        # Set CHROME_BIN environment variable
+        export CHROME_BIN=$(which google-chrome-stable)
+        echo "Chrome installed at: $CHROME_BIN"
+        
+        # Verify Chrome installation
+        google-chrome-stable --version
+        
+        echo ""
+        echo "========================================"
         echo "Running frontend tests with coverage..."
-        timeout 300 npm run test:ci || timeout 300 npm run test:coverage || echo "⚠️ Frontend tests failed or timed out (continuing build)"
-        echo "✓ Frontend tests completed"
+        echo "========================================"
+        
+        # Run tests with timeout protection
+        set +e
+        timeout 300 npm run test:ci 2>&1 | tee test-output.log
+        TEST_EXIT_CODE=${PIPESTATUS[0]}
+        
+        if [ $TEST_EXIT_CODE -eq 124 ]; then
+          echo "⚠️  Tests timed out after 300 seconds"
+          echo "Trying with standard ChromeHeadless..."
+          timeout 300 npm run test:coverage 2>&1 | tee -a test-output.log
+          TEST_EXIT_CODE=${PIPESTATUS[0]}
+        fi
+        
+        # Show test summary
+        echo ""
+        echo "========================================"
+        echo "📊 Frontend Test Summary"
+        echo "========================================"
+        grep -E "TOTAL|SUCCESS|FAILED" test-output.log || echo "No test results found"
+        
+        if [ $TEST_EXIT_CODE -ne 0 ]; then
+          echo "⚠️  Frontend tests failed (exit code: $TEST_EXIT_CODE)"
+          echo "⚠️  Continuing build in non-blocking mode"
+        else
+          echo "✅ All frontend tests passed!"
+        fi
+        
+        echo "✓ Frontend test step completed"
     dir: 'frontend'
     waitFor: ['frontend-install']
 
@@ -595,10 +666,28 @@ steps:
     args:
       - '-c'
       - |
-        echo "Uploading frontend coverage reports..."
+        echo "========================================"
+        echo "📤 Uploading Frontend Test Artifacts"
+        echo "========================================"
+        
+        # Create bucket if it doesn't exist
         gsutil mb gs://${_PROJECT_ID}-test-reports/ 2>/dev/null || echo "Bucket already exists"
-        gsutil -m cp -r coverage/* gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/frontend-coverage/ || echo "⚠️ Coverage upload failed (continuing build)"
-        echo "✓ Frontend coverage upload completed"
+        
+        # Upload coverage reports
+        echo "Uploading coverage reports..."
+        gsutil -m cp -r coverage/* gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/frontend-coverage/ 2>&1 || echo "⚠️ Coverage upload failed"
+        
+        # Upload test output log
+        echo "Uploading test output log..."
+        gsutil cp test-output.log gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/frontend-test-output.log 2>&1 || echo "⚠️ Test log upload failed"
+        
+        echo ""
+        echo "✓ Frontend artifacts uploaded to: gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/"
+        echo ""
+        echo "📊 View reports:"
+        echo "   Coverage: gsutil cp -r gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/frontend-coverage/ ."
+        echo "   Test Log: gsutil cat gs://${_PROJECT_ID}-test-reports/${BUILD_ID}/frontend-test-output.log"
+        echo "========================================"
     dir: 'frontend'
     waitFor: ['frontend-test']
 
