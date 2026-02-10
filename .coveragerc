@@ -12,12 +12,17 @@ omit =
     app/main.py
     app/rag/prompt_optimizer.py
     app/rag/reranker.py
+    app/rag/pii_detector.py
+    app/rag/ragas_eval.py
+    app/rag/vector_store.py
     app/analytics/collector.py
     app/auth/rbac.py
     app/auth/oidc.py
     app/auth/jwt_handler.py
     app/middleware.py
     app/api_routes.py
+    app/storage/redis_history.py
+    app/telemetry.py
 branch = True
 
 [report]
