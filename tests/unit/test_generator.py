@@ -400,3 +400,48 @@ class TestAdvancedScenarios:
         if hasattr(generator, 'generate_stream'):
             stream = generator.generate_stream("Test?", ["Context"])
             assert hasattr(stream, '__iter__')
+
+
+class TestExtractCitationsExceptionHandling:
+    """Test exception handling in extract_citations method."""
+    
+    @patch('app.rag.generator.TextEmbeddingModel.from_pretrained')
+    @patch('app.rag.generator.GenerativeModel')
+    @patch('app.rag.generator.vertexai.init')
+    def test_extract_citations_embedding_error(self, mock_vertex_init, mock_gen_model, mock_embedder):
+        """Test extract_citations when embedding fails."""
+        mock_model = MagicMock()
+        mock_gen_model.return_value = mock_model
+        
+        mock_embed = MagicMock()
+        mock_embed.get_embeddings.side_effect = Exception("Embedding error")
+        mock_embedder.return_value = mock_embed
+        
+        generator = GeminiGenerator("test-project", "us-central1")
+        
+        # Should fallback to first 3 contexts when exception occurs
+        contexts = ["Context 1", "Context 2", "Context 3", "Context 4"]
+        result = generator._extract_citations("Answer text", contexts)
+        
+        assert len(result) <= 3
+        assert result == contexts[:3]
+    
+    @patch('app.rag.generator.TextEmbeddingModel.from_pretrained')
+    @patch('app.rag.generator.GenerativeModel')
+    @patch('app.rag.generator.vertexai.init')
+    def test_extract_citations_with_few_contexts(self, mock_vertex_init, mock_gen_model, mock_embedder):
+        """Test extract_citations with fewer than 3 contexts on error."""
+        mock_model = MagicMock()
+        mock_gen_model.return_value = mock_model
+        
+        mock_embed = MagicMock()
+        mock_embed.get_embeddings.side_effect = Exception("Error")
+        mock_embedder.return_value = mock_embed
+        
+        generator = GeminiGenerator("test-project", "us-central1")
+        
+        # Should return all contexts when less than 3
+        contexts = ["Context 1", "Context 2"]
+        result = generator._extract_citations("Answer", contexts)
+        
+        assert result == contexts

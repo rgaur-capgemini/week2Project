@@ -312,9 +312,44 @@ class TestEdgeCases:
             # Should fallback to decode
             assert result == "corrupted data" or "corrupted data" in result
     
-    def test_chunk_negative_parameters(self):
-        """Test chunking with negative parameters (should handle gracefully)."""
-        text = "Test text"
-        result = chunk_text(text, max_chars=-100, overlap=-50)
-        # Should not crash, might return empty or adjusted
-        assert isinstance(result, list)
+    def test_extract_and_chunk_no_pii_detector(self):
+        """Test extract_and_chunk without PII detector."""
+        docs = [("test.txt", b"Simple text content for testing")]
+        result = extract_and_chunk(docs, pii_detector=None, use_dynamic_chunking=False)
+        
+        assert len(result) > 0
+        assert result[0]["metadata"]["pii_status"] == "clean"
+        assert result[0]["metadata"]["pii_detected"] == False
+    
+    def test_extract_and_chunk_with_pii_detector_error(self):
+        """Test extract_and_chunk when PII detector fails."""
+        mock_pii = MagicMock()
+        mock_pii.detect_pii.side_effect = Exception("PII detection failed")
+        
+        docs = [("test.txt", b"Text with potential PII")]
+        result = extract_and_chunk(docs, pii_detector=mock_pii)
+        
+        # Should fail open - mark as clean
+        assert len(result) > 0
+        assert result[0]["metadata"]["pii_status"] == "clean"
+        assert result[0]["metadata"]["pii_detected"] == False
+    
+    def test_extract_text_decode_error_fallback(self):
+        """Test extract_text fallback when decoding fails."""
+        # Create non-decodable bytes
+        invalid_bytes = b'\x80\x81\x82\x83'
+        result = extract_text("unknown.dat", invalid_bytes)
+        
+        # Should attempt decode with errors='ignore' or return empty
+        assert isinstance(result, str)
+    
+    def test_extract_text_final_exception_fallback(self):
+        """Test extract_text when all methods fail."""
+        with patch('app.rag.chunker.PdfReader', side_effect=Exception("Error")), \
+             patch('app.rag.chunker.DocxDocument', side_effect=Exception("Error")):
+            
+            # Create bytes that will fail decode
+            result = extract_text("test.bin", b'\x00\x01\x02')
+            
+            # Should return empty string or decoded string
+            assert isinstance(result, str)

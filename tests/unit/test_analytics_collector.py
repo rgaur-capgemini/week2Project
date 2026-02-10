@@ -392,3 +392,266 @@ class TestConnectionRecovery:
             status_code=200,
             latency_ms=100.0
         )
+
+
+class TestGetUsageStats:
+    """Test get_usage_stats method."""
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_get_usage_stats_with_data(self, mock_redis_class):
+        """Test getting usage stats with data."""
+        mock_redis = MagicMock()
+        mock_redis.ping.return_value = True
+        mock_redis.hgetall.side_effect = [
+            {b'/query': b'10', b'/ingest': b'5'},  # API calls
+            {b'200': b'12', b'404': b'3'},  # Status codes
+            {b'POST': b'10', b'GET': b'5'},  # Methods
+            {b'total_tokens': b'1000'},  # Tokens
+            {b'total_cost_cents': b'50'}  # Cost
+        ]
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        stats = collector.get_usage_stats()
+        
+        assert stats["total_calls"] == 15
+        assert stats["api_calls"] == {"/query": 10, "/ingest": 5}
+        assert stats["status_codes"] == {"200": 12, "404": 3}
+        assert stats["cost_usd"] == 0.50
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_get_usage_stats_with_user_id(self, mock_redis_class):
+        """Test getting usage stats for specific user."""
+        mock_redis = MagicMock()
+        mock_redis.ping.return_value = True
+        mock_redis.hgetall.side_effect = [
+            {b'/query': b'5'},  # User-specific API calls
+            {b'200': b'5'},  # Status codes
+            {b'POST': b'5'},  # Methods
+            {b'total_tokens': b'500'},  # User tokens
+            {b'total_cost_cents': b'25'}  # User cost
+        ]
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        stats = collector.get_usage_stats(user_id="user-123")
+        
+        assert stats["total_calls"] == 5
+        assert stats["cost_usd"] == 0.25
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_get_usage_stats_no_client(self, mock_redis_class):
+        """Test get_usage_stats when client is None."""
+        mock_redis = MagicMock()
+        mock_redis.ping.side_effect = RedisError("Connection failed")
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        collector.client = None
+        
+        stats = collector.get_usage_stats()
+        assert stats == {}
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_get_usage_stats_redis_error(self, mock_redis_class):
+        """Test get_usage_stats with Redis error."""
+        mock_redis = MagicMock()
+        mock_redis.ping.return_value = True
+        mock_redis.hgetall.side_effect = RedisError("Redis error")
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        stats = collector.get_usage_stats()
+        
+        assert stats == {}
+
+
+class TestGetLatencyStats:
+    """Test get_latency_stats method."""
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_get_latency_stats_with_data(self, mock_redis_class):
+        """Test getting latency stats with data."""
+        mock_redis = MagicMock()
+        mock_redis.ping.return_value = True
+        # Mock zrange to return latency scores
+        mock_redis.zrange.return_value = [
+            (b'req1', 50.0),
+            (b'req2', 100.0),
+            (b'req3', 150.0),
+            (b'req4', 200.0),
+            (b'req5', 250.0)
+        ]
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        stats = collector.get_latency_stats("/query", hours=1)
+        
+        assert stats["count"] == 5
+        assert stats["min"] == 50.0
+        assert stats["max"] == 250.0
+        assert stats["mean"] == 150.0
+        assert "p50" in stats
+        assert "p95" in stats
+        assert "p99" in stats
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_get_latency_stats_no_data(self, mock_redis_class):
+        """Test latency stats when no data available."""
+        mock_redis = MagicMock()
+        mock_redis.ping.return_value = True
+        mock_redis.zrange.return_value = []
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        stats = collector.get_latency_stats("/query", hours=24)
+        
+        assert stats["count"] == 0
+        assert stats["p50"] == 0
+        assert stats["p95"] == 0
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_get_latency_stats_no_client(self, mock_redis_class):
+        """Test latency stats when client is None."""
+        mock_redis = MagicMock()
+        mock_redis.ping.side_effect = RedisError()
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        collector.client = None
+        
+        stats = collector.get_latency_stats("/query")
+        assert stats == {}
+
+
+class TestGetUserActivity:
+    """Test get_user_activity method."""
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_get_user_activity(self, mock_redis_class):
+        """Test getting user activity."""
+        mock_redis = MagicMock()
+        mock_redis.ping.return_value = True
+        mock_redis.hgetall.return_value = {
+            b'total_tokens': b'100',
+            b'/query': b'5'
+        }
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        # Mock get_usage_stats to return consistent data
+        with patch.object(collector, 'get_usage_stats') as mock_stats:
+            mock_stats.return_value = {
+                "total_calls": 5,
+                "tokens": {"total_tokens": 100},
+                "cost_usd": 0.10
+            }
+            
+            activity = collector.get_user_activity("user-123", days=3)
+            
+            assert activity["user_id"] == "user-123"
+            assert len(activity["daily_stats"]) == 3
+            assert "totals" in activity
+            assert activity["totals"]["calls"] == 15  # 5 * 3 days
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_get_user_activity_no_client(self, mock_redis_class):
+        """Test user activity when client is None."""
+        mock_redis = MagicMock()
+        mock_redis.ping.side_effect = RedisError()
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        collector.client = None
+        
+        activity = collector.get_user_activity("user-123")
+        assert activity == {}
+
+
+class TestGetSystemOverview:
+    """Test get_system_overview method."""
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_get_system_overview(self, mock_redis_class):
+        """Test getting system overview."""
+        mock_redis = MagicMock()
+        mock_redis.ping.return_value = True
+        mock_redis.scan_iter.return_value = [
+            "tokens:user:user1:2024-01-01",
+            "tokens:user:user2:2024-01-01"
+        ]
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        
+        with patch.object(collector, 'get_usage_stats') as mock_usage, \
+             patch.object(collector, 'get_latency_stats') as mock_latency:
+            
+            mock_usage.return_value = {
+                "total_calls": 100,
+                "status_codes": {"200": 90, "404": 5, "500": 5},
+                "tokens": {"total_tokens": 1000},
+                "cost_usd": 1.50
+            }
+            
+            mock_latency.return_value = {
+                "p50": 100.0,
+                "p95": 200.0,
+                "mean": 120.0
+            }
+            
+            overview = collector.get_system_overview()
+            
+            assert overview["total_requests"] == 100
+            assert overview["unique_users"] == 2
+            assert overview["error_rate"] == 10.0  # (5+5)/100 * 100
+            assert "latency" in overview
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_get_system_overview_no_client(self, mock_redis_class):
+        """Test system overview when client is None."""
+        mock_redis = MagicMock()
+        mock_redis.ping.side_effect = RedisError()
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        collector.client = None
+        
+        overview = collector.get_system_overview()
+        assert overview == {}
+
+
+class TestHealthCheck:
+    """Test health_check method."""
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_health_check_healthy(self, mock_redis_class):
+        """Test health check when system is healthy."""
+        mock_redis = MagicMock()
+        mock_redis.ping.return_value = True
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        assert collector.health_check() is True
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_health_check_unhealthy(self, mock_redis_class):
+        """Test health check when system is unhealthy."""
+        mock_redis = MagicMock()
+        mock_redis.ping.side_effect = [True, RedisError("Connection lost")]
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        assert collector.health_check() is False
+    
+    @patch('app.analytics.collector.redis.Redis')
+    def test_health_check_no_client(self, mock_redis_class):
+        """Test health check when client is None."""
+        mock_redis = MagicMock()
+        mock_redis.ping.side_effect = RedisError()
+        mock_redis_class.return_value = mock_redis
+        
+        collector = AnalyticsCollector()
+        collector.client = None
+        
+        assert collector.health_check() is False
