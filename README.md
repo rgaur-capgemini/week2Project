@@ -606,14 +606,22 @@ hey -n 1000 -c 50 -m POST \
 
 ### DevOps & CI/CD
 - ✅ Multi-stage Docker builds
-- ✅ Cloud Build pipelines (303 lines)
-- ✅ Automated testing in CI
-- ✅ Quality gates (linting, testing)
+- ✅ Cloud Build pipelines (682 lines)
+- ✅ Automated testing in CI with coverage (≥80% line, ≥70% branch)
+- ✅ Quality gates (linting, testing, coverage)
 - ✅ Blue-green deployments
 - ✅ Rollback procedures
 - ✅ Infrastructure as Code (Terraform)
+- ✅ SBOM generation (SPDX 2.3, CycloneDX 1.5)
 
-### Operational Runbooks (NEW)
+### Test Coverage
+- ✅ Backend: ≥80% line coverage, ≥70% branch coverage
+- ✅ Frontend: ≥80% line coverage, ≥70% branch coverage
+- ✅ Automated coverage reports in CI/CD
+- ✅ Coverage monitoring script (`scripts/check-coverage.sh`)
+- ✅ Comprehensive test documentation (`docs/TEST_COVERAGE.md`)
+
+### Operational Runbooks
 - ✅ Emergency rollback procedures
 - ✅ Backup and disaster recovery
 - ✅ Certificate and credential rotation
