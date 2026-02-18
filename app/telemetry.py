@@ -1,4 +1,5 @@
 
+
 """
 OpenTelemetry observability configuration.
 Tracks latency, token usage, vector search metrics, and errors.
