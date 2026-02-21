@@ -93,7 +93,7 @@ async def upload_document_for_compliance(
         # Check permission
         rbac = get_rbac_manager()
         print(f"[DEBUG] Checking permissions for role: {current_user.get('role', 'guest')}")
-        if not rbac.has_permission(current_user.get("role", "guest"), Permission.DOCUMENT_UPLOAD):
+        if not rbac.has_permission(current_user, Permission.DOCUMENT_UPLOAD):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
         # Import services (lazy import to avoid circular dependencies)
@@ -220,7 +220,7 @@ async def get_compliance_report(
         
         # Check permission
         rbac = get_rbac_manager()
-        if not rbac.has_permission(current_user.get("role", "guest"), Permission.DOCUMENT_VIEW_OWN):
+        if not rbac.has_permission(current_user, Permission.DOCUMENT_VIEW_OWN):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
         # Fetch from Firestore
@@ -282,7 +282,7 @@ async def list_compliance_reports(
         
         # Check permission
         rbac = get_rbac_manager()
-        if not rbac.has_permission(current_user.get("role", "guest"), Permission.DOCUMENT_VIEW_OWN):
+        if not rbac.has_permission(current_user, Permission.DOCUMENT_VIEW_OWN):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
         # Query Firestore
@@ -337,7 +337,7 @@ async def upload_compliance_template(
     try:
         # Check admin permission
         rbac = get_rbac_manager()
-        if not rbac.has_permission(current_user.get("role", "guest"), Permission.ADMIN_MANAGE_SYSTEM):
+        if not rbac.has_permission(current_user, Permission.ADMIN_MANAGE_SYSTEM):
             raise HTTPException(status_code=403, detail="Admin permission required")
         
         # Import services
@@ -489,7 +489,7 @@ async def delete_compliance_report(
         
         # Check permission
         rbac = get_rbac_manager()
-        if not rbac.has_permission(current_user.get("role", "guest"), Permission.DOCUMENT_DELETE_OWN):
+        if not rbac.has_permission(current_user, Permission.DOCUMENT_DELETE_OWN):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
         # Get report to check ownership
