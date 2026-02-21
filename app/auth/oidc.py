@@ -271,15 +271,15 @@ class OIDCAuthenticator:
         Returns:
             User information dictionary
         """
-        # Try Google OAuth first
+        # Try custom JWT first (most common for API requests)
         try:
-            return await self.validate_google_token(token)
+            return await self.validate_custom_jwt(token)
         except HTTPException:
             pass
         
-        # Fall back to custom JWT
+        # Fall back to Google OAuth
         try:
-            return await self.validate_custom_jwt(token)
+            return await self.validate_google_token(token)
         except HTTPException as e:
             # If both fail, raise the last exception
             raise e
