@@ -97,14 +97,21 @@ async def upload_document_for_compliance(
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
         # Import services (lazy import to avoid circular dependencies)
+        print(f"[DEBUG] Starting imports")
         from app.storage.gcs_store import GCSDocumentStore
+        print(f"[DEBUG] Imported GCSDocumentStore")
         from app.storage.firestore_store import FirestoreChunkStore
+        print(f"[DEBUG] Imported FirestoreChunkStore")
         from app.rag.chunker import extract_and_chunk
+        print(f"[DEBUG] Imported extract_and_chunk")
         from app.config import config
+        print(f"[DEBUG] All imports complete")
         
         # Generate unique IDs
+        print(f"[DEBUG] Generating IDs")
         document_id = str(uuid.uuid4())
         report_id = str(uuid.uuid4())
+        print(f"[DEBUG] IDs generated: doc={document_id[:8]}, report={report_id[:8]}")
         
         logger.info(f"Processing compliance upload: document_id={document_id}, user={current_user.get('user_id')}")
         
