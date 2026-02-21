@@ -2,7 +2,7 @@
 Firestore integration for persistent chunk storage (production-grade).
 """
 
-from typing import Dict
+from typing import Dict, Any, Optional
 from google.cloud import firestore
 from app.logging_config import get_logger
 
