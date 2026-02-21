@@ -47,6 +47,7 @@ from app.api_routes import (
     history_router, 
     analytics_router
 )
+from app.compliance_routes import compliance_router
 import app.api_routes as api_routes_module
 
 # Initialize logger
@@ -213,6 +214,7 @@ configure_otel(app)
 app.include_router(auth_router)
 app.include_router(history_router)
 app.include_router(analytics_router)
+app.include_router(compliance_router)  # Week 3: Compliance routes
 
 @app.get("/api/config")
 async def get_public_config():

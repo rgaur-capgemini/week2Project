@@ -41,6 +41,9 @@ google-auth-oauthlib==1.1.0
 redis==5.0.1
 hiredis==2.2.3
 
+# Email notifications
+sendgrid==6.11.0
+
 # Utilities
 aiofiles==23.2.1
 python-dotenv==1.0.1

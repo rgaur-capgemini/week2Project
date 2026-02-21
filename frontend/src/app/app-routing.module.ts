@@ -4,6 +4,8 @@ import { LoginComponent } from './components/login.component';
 import { ChatComponent } from './components/chat.component';
 import { HistoryComponent } from './components/history.component';
 import { AdminComponent } from './components/admin.component';
+import { ComplianceComponent } from './components/compliance.component';
+import { ComplianceReportComponent } from './components/compliance-report.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -11,6 +13,8 @@ const routes: Routes = [
   { path: 'chat', component: ChatComponent },
   { path: 'history', component: HistoryComponent },
   { path: 'admin', component: AdminComponent },
+  { path: 'compliance', component: ComplianceComponent },
+  { path: 'compliance/report/:id', component: ComplianceReportComponent },
   { path: '**', redirectTo: '/login' }
 ];
 

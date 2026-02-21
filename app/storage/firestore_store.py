@@ -102,6 +102,91 @@ class FirestoreChunkStore:
             logger.error(f"Batch store failed", error=e)
             return 0
     
+    def get_chunk(self, chunk_id: str) -> Dict:
+        """
+        Retrieve a single chunk by ID.
+        
+        Args:
+            chunk_id: Unique chunk identifier
+        
+        Returns:
+            Chunk data dictionary or None if not found
+        """
+        if not self.collection:
+            return None
+        
+        try:
+            doc = self.collection.document(chunk_id).get()
+            if doc.exists:
+                return doc.to_dict()
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get chunk {chunk_id}", error=e)
+            return None
+    
+    def update_chunk(self, chunk_id: str, update_data: Dict) -> bool:
+        """
+        Update an existing chunk.
+        
+        Args:
+            chunk_id: Unique chunk identifier
+            update_data: Data to update
+        
+        Returns:
+            Success status
+        """
+        if not self.collection:
+            return False
+        
+        try:
+            update_data["updated_at"] = firestore.SERVER_TIMESTAMP
+            self.collection.document(chunk_id).update(update_data)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update chunk {chunk_id}", error=e)
+            return False
+    
+    def store_chunk(self, chunk_data: Optional[Dict[str, Any]] = None, chunk_id: Optional[str] = None, **kwargs) -> str:
+        """
+        Store single chunk in Firestore.
+        Supports both dict parameter and kwargs for flexible usage.
+        
+        Args:
+            chunk_data: Chunk metadata dictionary (optional if using kwargs)
+            chunk_id: Optional custom chunk ID
+            **kwargs: Alternative way to pass chunk data
+        
+        Returns:
+            Stored chunk ID
+        """
+        try:
+            # Handle both dict and kwargs patterns
+            if chunk_data is None:
+                chunk_data = kwargs
+            elif kwargs:
+                # Merge kwargs into chunk_data
+                chunk_data = {**chunk_data, **kwargs}
+            
+            # Generate chunk ID if not provided
+            if not chunk_id:
+                chunk_id = chunk_data.get("id", str(uuid.uuid4()))
+            
+            # Ensure chunk has required fields
+            doc_data = {
+                "chunk_id": chunk_id,
+                "created_at": firestore.SERVER_TIMESTAMP,
+                "updated_at": firestore.SERVER_TIMESTAMP,
+                **chunk_data  # Include all provided data
+            }
+            
+            self.collection.document(chunk_id).set(doc_data, merge=True)
+            logger.info(f"Stored chunk: {chunk_id}")
+            return chunk_id
+            
+        except Exception as e:
+            logger.error(f"Failed to store chunk", error=e)
+            raise
+    
 
     
 
