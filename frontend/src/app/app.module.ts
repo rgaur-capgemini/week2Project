@@ -17,6 +17,9 @@ import { MatTableModule } from '@angular/material/table';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -25,6 +28,8 @@ import { LoginComponent } from './components/login.component';
 import { ChatComponent } from './components/chat.component';
 import { HistoryComponent } from './components/history.component';
 import { AdminComponent } from './components/admin.component';
+import { ComplianceComponent } from './components/compliance.component';
+import { ComplianceReportComponent } from './components/compliance-report.component';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 
 @NgModule({
@@ -34,7 +39,9 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
     LoginComponent,
     ChatComponent,
     HistoryComponent,
-    AdminComponent
+    AdminComponent,
+    ComplianceComponent,
+    ComplianceReportComponent
   ],
   imports: [
     BrowserModule,
@@ -53,7 +60,10 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
     MatTableModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatSelectModule
+    MatSelectModule,
+    MatChipsModule,
+    MatExpansionModule,
+    MatProgressBarModule
   ],
   providers: [
     {

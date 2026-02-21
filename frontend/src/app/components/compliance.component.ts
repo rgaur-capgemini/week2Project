@@ -26,7 +26,7 @@ import { AuthService } from '../services/auth.service';
               <mat-icon>upload_file</mat-icon>
               Select Document
             </button>
-            <span *ngIf="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+            <span *ngIf="selectedFile" class="file-name">{{ selectedFile?.name }}</span>
             
             <mat-form-field appearance="outline" class="template-type-field">
               <mat-label>Template Type (Optional)</mat-label>

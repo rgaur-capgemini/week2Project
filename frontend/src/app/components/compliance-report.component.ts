@@ -66,7 +66,7 @@ import { interval } from 'rxjs';
           <mat-card-header>
             <mat-card-title>
               <mat-icon>warning</mat-icon>
-              Identified Gaps ({{ report.gaps.length }})
+              Identified Gaps ({{ report?.gaps?.length ?? 0 }})
             </mat-card-title>
           </mat-card-header>
           <mat-card-content>
