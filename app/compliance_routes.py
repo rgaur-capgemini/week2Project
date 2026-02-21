@@ -88,8 +88,11 @@ async def upload_document_for_compliance(
     Requires: DOCUMENT_UPLOAD permission
     """
     try:
+        logger.debug(f"[DEBUG] Upload started, current_user type: {type(current_user)}, value: {current_user}")
+        
         # Check permission
         rbac = get_rbac_manager()
+        logger.debug(f"[DEBUG] Checking permissions for role: {current_user.get('role', 'guest')}")
         if not rbac.has_permission(current_user.get("role", "guest"), Permission.DOCUMENT_UPLOAD):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
@@ -106,14 +109,20 @@ async def upload_document_for_compliance(
         logger.info(f"Processing compliance upload: document_id={document_id}, user={current_user.get('user_id')}")
         
         # Read file content
+        logger.debug(f"[DEBUG] Reading file: {file.filename}")
         content = await file.read()
+        logger.debug(f"[DEBUG] File read complete, size: {len(content)} bytes")
+        
+        logger.debug(f"[DEBUG] File read complete, size: {len(content)} bytes")
         
         # Upload to GCS
+        logger.debug(f"[DEBUG] Initializing GCS store")
         doc_store = GCSDocumentStore(
             project_id=config.PROJECT_ID,
             bucket_name=config.GCS_BUCKET
         )
         
+        logger.debug(f"[DEBUG] Uploading to GCS: {file.filename}")
         gcs_uri = doc_store.upload_document(
             filename=file.filename,
             content=content,
@@ -125,17 +134,25 @@ async def upload_document_for_compliance(
                 "purpose": "compliance_check"
             }
         )
+        logger.debug(f"[DEBUG] GCS upload complete: {gcs_uri}")
         
         # Chunk document
-        chunks = extract_and_chunk(content, file.filename)
+        logger.debug(f"[DEBUG] Starting document chunking")
+        chunks = extract_and_chunk([(file.filename, content)])
+        logger.debug(f"[DEBUG] Chunking complete, chunks type: {type(chunks)}, count: {len(chunks)}")
+        logger.debug(f"[DEBUG] First chunk type: {type(chunks[0]) if chunks else 'N/A'}")
+        logger.debug(f"[DEBUG] First chunk type: {type(chunks[0]) if chunks else 'N/A'}")
         document_text = " ".join([chunk.get("text", "") for chunk in chunks])
+        logger.debug(f"[DEBUG] Document text extracted, length: {len(document_text)}")
         
         # Store initial report metadata in Firestore
+        logger.debug(f"[DEBUG] Initializing Firestore store")
         chunk_store = FirestoreChunkStore(
             project_id=config.PROJECT_ID,
             collection_name="compliance_reports"
         )
         
+        logger.debug(f"[DEBUG] Storing report metadata in Firestore")
         chunk_store.store_chunk({
             "id": report_id,
             "report_id": report_id,
@@ -149,8 +166,10 @@ async def upload_document_for_compliance(
             "created_at": datetime.utcnow().isoformat(),
             "chunks_count": len(chunks)
         })
+        logger.debug(f"[DEBUG] Firestore metadata stored successfully")
         
         # Trigger compliance workflow (background task)
+        logger.debug(f"[DEBUG] Adding background task for compliance workflow")
         background_tasks.add_task(
             run_compliance_workflow_background,
             report_id=report_id,
