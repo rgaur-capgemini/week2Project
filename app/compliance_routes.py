@@ -373,8 +373,12 @@ async def upload_compliance_template(
             }
         )
         
+        logger.info(f"Template uploaded to GCS: {gcs_uri}")
+        
         # Publish to Pub/Sub for async processing by Cloud Function
         try:
+            from google.cloud import pubsub_v1
+            
             publisher = pubsub_v1.PublisherClient()
             topic_path = f"projects/{config.PROJECT_ID}/topics/compliance-template-ingestion"
             
@@ -399,25 +403,27 @@ async def upload_compliance_template(
             return TemplateUploadResponse(
                 template_id=template_id,
                 status="processing",
-                message=f"Template uploaded successfully. Processing in progress via Cloud Function."
+                message=f"Template uploaded successfully. Processing via Cloud Function."
             )
             
         except Exception as pubsub_error:
-            logger.warning(f"Pub/Sub publish failed, falling back to direct processing: {pubsub_error}")
+            logger.warning(f"Pub/Sub publish failed, processing inline: {pubsub_error}")
             
-            # Fallback: Process inline if Pub/Sub not available
+            # Fallback: Process inline if Pub/Sub/Cloud Function not available
             from app.rag.chunker import extract_and_chunk
             from app.rag.embeddings import VertexTextEmbedder
             from app.rag.vector_store import VertexVectorStore
             from app.storage.firestore_store import FirestoreChunkStore
             
             # Chunk template
-            chunks = extract_and_chunk(content, file.filename)
+            chunks = extract_and_chunk([(file.filename, content)])
+            logger.info(f"Template chunked: {len(chunks)} chunks")
             
             # Embed chunks
             embedder = VertexTextEmbedder(project=config.PROJECT_ID, location=config.VERTEX_LOCATION)
             texts = [chunk.get("text", "") for chunk in chunks]
             embeddings = embedder.embed(texts)
+            logger.info(f"Template embeddings generated: {len(embeddings)} vectors")
             
             # Store in vector store (using existing index as fallback)
             vector_store = VertexVectorStore(
