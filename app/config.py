@@ -23,7 +23,7 @@ class Config:
     
     def __init__(self):
         # GCP Configuration
-        self.PROJECT_ID = os.getenv("PROJECT_ID", "btoproject-486405")
+        self.PROJECT_ID = os.getenv("PROJECT_ID", "btoproject-486405-486604")
         self.REGION = os.getenv("REGION", "us-central1")
         self.ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
         

@@ -13,6 +13,11 @@ import { AuthService } from '../services/auth.service';
         Chat
       </button>
       
+      <button mat-button routerLink="/compliance">
+        <mat-icon>verified_user</mat-icon>
+        Compliance
+      </button>
+      
       <button mat-button routerLink="/history">
         <mat-icon>history</mat-icon>
         History

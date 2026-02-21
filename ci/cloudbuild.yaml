@@ -14,24 +14,14 @@ steps:
 # Build Docker image
 - name: gcr.io/cloud-builders/docker
   id: 'build-image'
-  args: ["build", "-t", "gcr.io/btoproject-486405/rag-service:latest", "."]
+  args: ["build", "-t", "gcr.io/btoproject-486405-486604/rag-backend:latest", "."]
   waitFor: ['run-tests']
 
 # Push Docker image
 - name: gcr.io/cloud-builders/docker
   id: 'push-image'
-  args: ["push", "gcr.io/btoproject-486405/rag-service:latest"]
+  args: ["push", "gcr.io/btoproject-486405-486604/rag-backend:latest"]
   waitFor: ['build-image']
-# Deploy to Cloud Run
-- name: "gcr.io/cloud-builders/gcloud"
-  id: 'deploy-service'
-  args:
-    ["run", "deploy", "rag-service",
-     "--image=gcr.io/btoproject-486405/rag-service:latest",
-     "--service-account=rag-system-sa@btoproject-486405.iam.gserviceaccount.com",
-     "--region=us-central1",
-     "--set-env-vars","PROJECT_ID=btoproject-486405,REGION=us-central1,VERTEX_LOCATION=us-central1,VERTEX_INDEX_ID=rag-index,VERTEX_INDEX_ENDPOINT=rag-index-endpoint,MODEL_VARIANT=gemini-2.0-flash-001",
-     "--allow-unauthenticated"]
-  waitFor: ['push-image']
+
 images:
-- "gcr.io/btoproject-486405/rag-service:latest"
+- "gcr.io/btoproject-486405-486604/rag-backend:latest"

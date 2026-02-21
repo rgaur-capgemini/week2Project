@@ -24,6 +24,9 @@ class Permission(str, Enum):
     DOCUMENT_INGEST = "document:ingest"
     DOCUMENT_DELETE = "document:delete"
     DOCUMENT_VIEW = "document:view"
+    DOCUMENT_UPLOAD = "document:upload"
+    DOCUMENT_VIEW_OWN = "document:view_own"
+    DOCUMENT_DELETE_OWN = "document:delete_own"
     
     # Analytics permissions
     ANALYTICS_VIEW = "analytics:view"
@@ -51,6 +54,9 @@ ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
         Permission.CHAT_DELETE_HISTORY,
         Permission.DOCUMENT_INGEST,
         Permission.DOCUMENT_VIEW,
+        Permission.DOCUMENT_UPLOAD,
+        Permission.DOCUMENT_VIEW_OWN,
+        Permission.DOCUMENT_DELETE_OWN,
     },
     Role.ADMIN: {
         # Admin has all user permissions plus admin-specific ones
@@ -60,6 +66,9 @@ ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
         Permission.DOCUMENT_INGEST,
         Permission.DOCUMENT_DELETE,
         Permission.DOCUMENT_VIEW,
+        Permission.DOCUMENT_UPLOAD,
+        Permission.DOCUMENT_VIEW_OWN,
+        Permission.DOCUMENT_DELETE_OWN,
         Permission.ANALYTICS_VIEW,
         Permission.ANALYTICS_EXPORT,
         Permission.ADMIN_VIEW_ALL_USERS,
@@ -72,6 +81,7 @@ ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
         Permission.CHAT_ASK,
         Permission.DOCUMENT_INGEST,
         Permission.DOCUMENT_DELETE,
+        Permission.DOCUMENT_UPLOAD,
         Permission.ANALYTICS_VIEW,
     }
 }

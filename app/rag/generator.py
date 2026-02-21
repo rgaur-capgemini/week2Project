@@ -5,6 +5,7 @@ Generates grounded answers from retrieved contexts using Gemini or Claude.
 
 import os
 from typing import List, Tuple, Dict
+import numpy as np
 import vertexai
 from vertexai.generative_models import GenerativeModel
 from vertexai.language_models import TextEmbeddingModel
@@ -15,12 +16,22 @@ class GeminiGenerator:
     Supports grounded generation with citations.
     """
     
-    def __init__(self, project: str, location: str, model: str = "gemini-2.0-flash-001"):
+    def __init__(self, project: str, location: str, model: str = "gemini-2.0-flash-001", model_name: str = None):
+        """
+        Initialize Gemini generator.
+        
+        Args:
+            project: GCP project ID
+            location: GCP region
+            model: Model name (legacy parameter)
+            model_name: Model name (new parameter for compatibility)
+        """
         vertexai.init(project=project, location=location)
         self.project = project
         self.location = location
-        self.model_name = model
-        self.gen = GenerativeModel(model)
+        # Support both 'model' and 'model_name' parameters
+        self.model_name = model_name or model
+        self.gen = GenerativeModel(self.model_name)
         self.embedder = TextEmbeddingModel.from_pretrained("text-embedding-004")
         self.max_tokens = int(os.getenv("MAX_TOKENS", "8000"))
 
