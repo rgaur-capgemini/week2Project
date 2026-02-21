@@ -3,12 +3,6 @@
 # Features: Build, Test, Security Scan, SBOM Generation, Deploy to GKE
 ##
 
-options:
-  machineType: 'E2_HIGHCPU_8'
-  logging: CLOUD_LOGGING_ONLY
-  
-timeout: 3600s  # 1 hour
-
 substitutions:
   _PROJECT_ID: 'btoproject-486405-486604'
   _REGION: 'us-central1'
@@ -909,10 +903,9 @@ steps:
 #       # - 'frontend/coverage/**'  # Disabled - tests not running
 #       # - '*-sbom.json'  # Disabled - SBOM generation not enabled
 
-# Build timeout
-timeout: 3600s
+# Build configuration
+timeout: 3600s  # 1 hour
 
-# Quality gate options
 options:
   machineType: 'E2_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY
