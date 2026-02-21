@@ -103,7 +103,7 @@ async def upload_document_for_compliance(
         document_id = str(uuid.uuid4())
         report_id = str(uuid.uuid4())
         
-        logger.info(f"Processing compliance upload: document_id={document_id}, user={current_user.get('sub')}")
+        logger.info(f"Processing compliance upload: document_id={document_id}, user={current_user.get('user_id')}")
         
         # Read file content
         content = await file.read()
@@ -287,7 +287,7 @@ async def list_compliance_reports(
                 created_at=datetime.fromisoformat(data.get("created_at", datetime.utcnow().isoformat()))
             ))
         
-        logger.info(f"Listed {len(reports)} compliance reports for user {current_user.get('sub')}")
+        logger.info(f"Listed {len(reports)} compliance reports for user {current_user.get('user_id')}")
         
         return reports
         
@@ -325,7 +325,7 @@ async def upload_compliance_template(
         # Generate template ID
         template_id = str(uuid.uuid4())
         
-        logger.info(f"Processing template upload: template_id={template_id}, type={template_type}, user={current_user.get('sub')}")
+        logger.info(f"Processing template upload: template_id={template_id}, type={template_type}, user={current_user.get('user_id')}")
         
         # Upload to GCS (templates bucket)
         content = await file.read()
@@ -486,7 +486,7 @@ async def delete_compliance_report(
         # Delete report
         doc_ref.delete()
         
-        logger.info(f"Deleted compliance report: report_id={report_id}, user={current_user.get('sub')}")
+        logger.info(f"Deleted compliance report: report_id={report_id}, user={current_user.get('user_id')}")
         
         return {"message": "Report deleted successfully", "report_id": report_id}
         

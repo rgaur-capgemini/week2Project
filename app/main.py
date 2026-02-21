@@ -236,7 +236,7 @@ async def get_public_config():
         logger.error(f"Failed to retrieve public config: {e}")
         raise HTTPException(status_code=500, detail="Configuration not available")
 
-@app.get("/health")
+@app.get("/health", include_in_schema=False)
 def health():
     """Basic health check endpoint (Cloud Run requirement)."""
     return {
@@ -246,7 +246,7 @@ def health():
     }
 
 
-@app.get("/readiness")
+@app.get("/readiness", include_in_schema=False)
 async def readiness():
     """
     Readiness probe - checks if service dependencies are available.
@@ -288,7 +288,7 @@ async def readiness():
     }
 
 
-@app.get("/liveness")
+@app.get("/liveness", include_in_schema=False)
 def liveness():
     """
     Liveness probe - checks if service is running.
@@ -1012,6 +1012,22 @@ async def query_langgraph(req: QueryRequest):
             logger.error("LangGraph query failed", error=e, question=req.question[:100])
             raise HTTPException(status_code=500, detail=f"LangGraph query failed: {str(e)}")
 
+
+# Filter health check endpoints from access logs (reduces log noise and costs)
+import logging
+
+class HealthCheckFilter(logging.Filter):
+    """Filter out health check endpoints from access logs."""
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Suppress logs for health check endpoints
+        if hasattr(record, 'args') and len(record.args) >= 2:
+            path = str(record.args[1])
+            if any(endpoint in path for endpoint in ['/health', '/readiness', '/liveness']):
+                return False
+        return True
+
+# Apply filter to uvicorn access logger
+logging.getLogger("uvicorn.access").addFilter(HealthCheckFilter())
 
 
 if __name__ == "__main__":
