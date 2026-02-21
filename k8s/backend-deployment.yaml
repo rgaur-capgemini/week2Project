@@ -74,6 +74,17 @@ spec:
           value: "INFO"
         - name: PORT
           value: "8080"
+        - name: FROM_EMAIL
+          valueFrom:
+            configMapKeyRef:
+              name: rag-config
+              key: FROM_EMAIL
+        - name: SENDGRID_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: sendgrid-secret
+              key: api-key
+              optional: true  # Optional: won't fail if secret doesn't exist
         
         resources:
           requests:

@@ -614,7 +614,7 @@ async def run_compliance_workflow_background(
                     report_id=report_id,
                     document_id=document_id,
                     compliance_score=result.get("compliance_score", 0.0),
-                    report_url=f"https://your-app-url.com/compliance/reports/{report_id}",
+                    report_url=f"http://35.202.173.49.nip.io/compliance/reports/{report_id}",
                     gaps_count=len(result.get("gaps", []))
                 )
             except Exception as email_error:
