@@ -2,6 +2,7 @@
 Firestore integration for persistent chunk storage (production-grade).
 """
 
+import uuid
 from typing import Dict, Any, Optional
 from google.cloud import firestore
 from app.logging_config import get_logger
