@@ -120,7 +120,7 @@ async def upload_document_for_compliance(
             content_type=file.content_type,
             metadata={
                 "document_id": document_id,
-                "user_id": current_user.get("sub"),
+                "user_id": current_user.get("user_id"),
                 "uploaded_at": datetime.utcnow().isoformat(),
                 "purpose": "compliance_check"
             }
@@ -140,7 +140,7 @@ async def upload_document_for_compliance(
             "id": report_id,
             "report_id": report_id,
             "document_id": document_id,
-            "user_id": current_user.get("sub"),
+            "user_id": current_user.get("user_id"),
             "user_email": current_user.get("email"),
             "gcs_uri": gcs_uri,
             "filename": file.filename,
@@ -212,7 +212,7 @@ async def get_compliance_report(
             raise HTTPException(status_code=404, detail="Report not found")
         
         # Check user has access (own report or admin)
-        if report_data.get("user_id") != current_user.get("sub") and current_user.get("role") != "admin":
+        if report_data.get("user_id") != current_user.get("user_id") and current_user.get("role") != "admin":
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Convert to response model
@@ -270,7 +270,7 @@ async def list_compliance_reports(
         if current_user.get("role") == "admin":
             query = collection.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit).offset(offset)
         else:
-            query = collection.where("user_id", "==", current_user.get("sub")).order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit).offset(offset)
+            query = collection.where("user_id", "==", current_user.get("user_id")).order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit).offset(offset)
         
         docs = query.stream()
         
@@ -345,7 +345,7 @@ async def upload_compliance_template(
                 "template_id": template_id,
                 "template_type": template_type,
                 "version": version,
-                "uploaded_by": current_user.get("sub"),
+                "uploaded_by": current_user.get("user_id"),
                 "uploaded_at": datetime.utcnow().isoformat()
             }
         )
@@ -361,7 +361,7 @@ async def upload_compliance_template(
                 "version": version,
                 "bucket": bucket_name,
                 "blob_name": blob_name,
-                "uploaded_by": current_user.get("sub"),
+                "uploaded_by": current_user.get("user_id"),
                 "user_email": current_user.get("email")
             }
             
@@ -429,7 +429,7 @@ async def upload_compliance_template(
                 "version": version,
                 "gcs_uri": gcs_uri,
                 "chunk_count": len(chunks),
-                "uploaded_by": current_user.get("sub"),
+                "uploaded_by": current_user.get("user_id"),
                 "status": "ready",
                 "created_at": datetime.utcnow().isoformat()
             })
@@ -480,7 +480,7 @@ async def delete_compliance_report(
         report_data = doc.to_dict()
         
         # Check ownership (unless admin)
-        if report_data.get("user_id") != current_user.get("sub") and current_user.get("role") != "admin":
+        if report_data.get("user_id") != current_user.get("user_id") and current_user.get("role") != "admin":
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Delete report
@@ -616,3 +616,4 @@ async def run_compliance_workflow_background(
             })
         except:
             pass
+
