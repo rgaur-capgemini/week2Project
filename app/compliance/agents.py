@@ -138,6 +138,45 @@ class ComplianceAgent:
                 enable_pii_filter=False  # Templates are pre-approved
             )
             
+            # FALLBACK: If vector search returns 0 results, query Firestore directly
+            if len(template_results) == 0:
+                logger.warning("Vector search returned 0 templates, querying Firestore directly")
+                from google.cloud import firestore
+                from app.config import config
+                
+                db = firestore.Client(project=config.PROJECT_ID)
+                templates_ref = db.collection('compliance_templates')
+                
+                # Get all templates of the specified type
+                if state.get("template_type"):
+                    query = templates_ref.where("template_type", "==", state["template_type"]).where("status", "==", "ready")
+                else:
+                    query = templates_ref.where("status", "==", "ready")
+                
+                template_docs = query.limit(10).stream()
+                
+                # Convert Firestore docs to template format
+                for doc in template_docs:
+                    template_data = doc.to_dict()
+                    # Get template chunks from Firestore
+                    chunks_ref = db.collection('compliance_template_chunks').where("template_id", "==", doc.id).stream()
+                    
+                    for chunk_doc in chunks_ref:
+                        chunk_data = chunk_doc.to_dict()
+                        template_results.append({
+                            "id": chunk_data.get("chunk_id", doc.id),
+                            "text": chunk_data.get("text", ""),
+                            "score": 1.0,  # Default high score for Firestore fallback
+                            "metadata": {
+                                "template_id": template_data.get("template_id"),
+                                "template_type": template_data.get("template_type"),
+                                "version": template_data.get("version"),
+                                "is_template": True
+                            }
+                        })
+                
+                logger.info(f"Retrieved {len(template_results)} templates from Firestore fallback")
+            
             # Filter by template type if specified
             if state.get("template_type"):
                 template_results = [
