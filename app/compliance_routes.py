@@ -375,109 +375,77 @@ async def upload_compliance_template(
         
         logger.info(f"Template uploaded to GCS: {gcs_uri}")
         
-        # TEMPORARY: Skip Pub/Sub and process inline due to GCS permission issues
-        # Publish to Pub/Sub for async processing by Cloud Function
-        if False:  # Disabled temporarily - GCS upload failing from pods
-            from google.cloud import pubsub_v1
-            
-            publisher = pubsub_v1.PublisherClient()
-            topic_path = f"projects/{config.PROJECT_ID}/topics/compliance-template-ingestion"
-            
-            message_data = {
-                "template_id": template_id,
-                "template_type": template_type,
-                "version": version,
-                "bucket": bucket_name,
-                "blob_name": blob_name,
-                "uploaded_by": current_user.get("user_id"),
-                "user_email": current_user.get("email")
-            }
-            
-            future = publisher.publish(
-                topic_path,
-                json.dumps(message_data).encode('utf-8')
-            )
-            future.result()  # Wait for publish confirmation
-            
-            logger.info(f"Template upload published to Pub/Sub: template_id={template_id}")
-            
-            return TemplateUploadResponse(
-                template_id=template_id,
-                status="processing",
-                message=f"Template uploaded successfully. Processing via Cloud Function."
-            )
-            
-        except Exception as pubsub_error:
-            logger.warning(f"Pub/Sub publish failed, processing inline: {pubsub_error}")
-            
-            # Fallback: Process inline if Pub/Sub/Cloud Function not available
-            from app.rag.chunker import extract_and_chunk
-            from app.rag.embeddings import VertexTextEmbedder
-            from app.rag.vector_store import VertexVectorStore
-            from app.storage.firestore_store import FirestoreChunkStore
-            
-            # Chunk template
-            chunks = extract_and_chunk([(file.filename, content)])
-            logger.info(f"Template chunked: {len(chunks)} chunks")
-            
-            # Embed chunks
-            embedder = VertexTextEmbedder(project=config.PROJECT_ID, location=config.VERTEX_LOCATION)
-            texts = [chunk.get("text", "") for chunk in chunks]
-            embeddings = embedder.embed(texts)
-            logger.info(f"Template embeddings generated: {len(embeddings)} vectors")
-            
-            # Store in vector store (using existing index as fallback)
-            vector_store = VertexVectorStore(
-                project=config.PROJECT_ID,
-                location=config.VERTEX_LOCATION,
-                index_id=config.VERTEX_INDEX_ID,
-                index_endpoint_name=config.VERTEX_INDEX_ENDPOINT,
-                deployed_index_id=config.DEPLOYED_INDEX_ID
-            )
-            
-            # Add template metadata
-            for chunk in chunks:
-                if "metadata" not in chunk:
-                    chunk["metadata"] = {}
-                chunk["metadata"]["template_id"] = template_id
-                chunk["metadata"]["template_type"] = template_type
-                chunk["metadata"]["version"] = version
-                chunk["metadata"]["is_template"] = True
-            
-            vector_store.upsert(chunks, embeddings)
-            
-            # Store metadata in Firestore
-            chunk_store = FirestoreChunkStore(
-                project_id=config.PROJECT_ID,
-                collection_name="compliance_templates"
-            )
-            
-            chunk_store.store_chunk({
-                "id": template_id,
-                "template_id": template_id,
-                "template_type": template_type,
-                "version": version,
-                "gcs_uri": gcs_uri,
-                "chunk_count": len(chunks),
-                "uploaded_by": current_user.get("user_id"),
-                "status": "ready",
-                "created_at": datetime.utcnow().isoformat()
-            })
-            
-            logger.info(f"Template processed inline: template_id={template_id}, chunks={len(chunks)}")
-            
-            return TemplateUploadResponse(
-                template_id=template_id,
-                status="completed",
-                message=f"Template processed successfully: {len(chunks)} chunks created."
-            )
+        # TEMPORARY: Process inline due to GCS permission issues
+        # Skipping Pub/Sub/Cloud Function until Workload Identity is configured
+        logger.info(f"Processing template inline: template_id={template_id}")
+        
+        # Process inline - chunk, embed, and store
+        from app.rag.chunker import extract_and_chunk
+        from app.rag.embeddings import VertexTextEmbedder
+        from app.rag.vector_store import VertexVectorStore
+        from app.storage.firestore_store import FirestoreChunkStore
+        
+        # Chunk template
+        chunks = extract_and_chunk([(file.filename, content)])
+        logger.info(f"Template chunked: {len(chunks)} chunks")
+        
+        # Embed chunks
+        embedder = VertexTextEmbedder(project=config.PROJECT_ID, location=config.VERTEX_LOCATION)
+        texts = [chunk.get("text", "") for chunk in chunks]
+        embeddings = embedder.embed(texts)
+        logger.info(f"Template embeddings generated: {len(embeddings)} vectors")
+        
+        # Store in vector store (using existing index as fallback)
+        vector_store = VertexVectorStore(
+            project=config.PROJECT_ID,
+            location=config.VERTEX_LOCATION,
+            index_id=config.VERTEX_INDEX_ID,
+            index_endpoint_name=config.VERTEX_INDEX_ENDPOINT,
+            deployed_index_id=config.DEPLOYED_INDEX_ID
+        )
+        
+        # Add template metadata
+        for chunk in chunks:
+            if "metadata" not in chunk:
+                chunk["metadata"] = {}
+            chunk["metadata"]["template_id"] = template_id
+            chunk["metadata"]["template_type"] = template_type
+            chunk["metadata"]["version"] = version
+            chunk["metadata"]["is_template"] = True
+        
+        vector_store.upsert(chunks, embeddings)
+        
+        # Store metadata in Firestore
+        chunk_store = FirestoreChunkStore(
+            project_id=config.PROJECT_ID,
+            collection_name="compliance_templates"
+        )
+        
+        chunk_store.store_chunk({
+            "id": template_id,
+            "template_id": template_id,
+            "template_type": template_type,
+            "version": version,
+            "gcs_uri": gcs_uri,
+            "chunk_count": len(chunks),
+            "uploaded_by": current_user.get("user_id"),
+            "status": "ready",
+            "created_at": datetime.utcnow().isoformat()
+        })
+        
+        logger.info(f"Template processed inline: template_id={template_id}, chunks={len(chunks)}")
+        
+        return TemplateUploadResponse(
+            template_id=template_id,
+            status="completed",
+            message=f"Template processed successfully: {len(chunks)} chunks created."
+        )
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error uploading template: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Template upload failed: {str(e)}")
-
 
 @compliance_router.delete("/reports/{report_id}")
 async def delete_compliance_report(
