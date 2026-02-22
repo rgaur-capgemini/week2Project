@@ -375,8 +375,9 @@ async def upload_compliance_template(
         
         logger.info(f"Template uploaded to GCS: {gcs_uri}")
         
+        # TEMPORARY: Skip Pub/Sub and process inline due to GCS permission issues
         # Publish to Pub/Sub for async processing by Cloud Function
-        try:
+        if False:  # Disabled temporarily - GCS upload failing from pods
             from google.cloud import pubsub_v1
             
             publisher = pubsub_v1.PublisherClient()
