@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Manual template upload script.
-Run this in Cloud Shell to manually process and upload a template.
+Manual template upload script - COMPLETE VERSION.
+Run this in Cloud Shell to upload template to both Firestore AND Vertex AI Vector Search.
 """
 
 import sys
