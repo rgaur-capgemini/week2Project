@@ -1,0 +1,267 @@
+.finops-dashboard {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    h2 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 500;
+    }
+  }
+
+  .loading {
+    text-align: center;
+    padding: 40px;
+
+    mat-spinner {
+      margin: 0 auto 20px;
+    }
+  }
+
+  .error {
+    text-align: center;
+    padding: 40px;
+    color: #f44336;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+    }
+  }
+
+  .dashboard-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+
+    mat-card {
+      padding: 20px;
+
+      mat-card-header {
+        margin-bottom: 20px;
+
+        mat-card-title {
+          font-size: 18px;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+
+          .warning-icon {
+            color: #ff9800;
+          }
+        }
+      }
+    }
+
+    .budget-card {
+      grid-column: 1 / -1;
+
+      mat-progress-bar {
+        height: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+      }
+
+      .budget-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+
+        .stat-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px;
+          border-radius: 4px;
+          background: #f5f5f5;
+
+          &.alert-row {
+            grid-column: 1 / -1;
+            background: #fff3e0;
+          }
+
+          .label {
+            font-weight: 500;
+            color: #666;
+          }
+
+          .value {
+            font-weight: 600;
+            font-size: 18px;
+          }
+
+          .alert-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+
+            &.low {
+              background: #4caf50;
+              color: white;
+            }
+
+            &.medium {
+              background: #ff9800;
+              color: white;
+            }
+
+            &.high {
+              background: #f44336;
+              color: white;
+            }
+
+            &.critical {
+              background: #d32f2f;
+              color: white;
+              animation: pulse 2s infinite;
+            }
+          }
+        }
+      }
+    }
+
+    .services-card {
+      .service-list {
+        .service-item {
+          display: flex;
+          justify-content: space-between;
+          padding: 12px 0;
+          border-bottom: 1px solid #e0e0e0;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .service-name {
+            font-weight: 500;
+          }
+
+          .service-cost {
+            font-weight: 600;
+            color: #1976d2;
+          }
+        }
+      }
+
+      .total-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 15px 0 0;
+        margin-top: 15px;
+        border-top: 2px solid #1976d2;
+        font-size: 18px;
+
+        .label {
+          font-weight: 600;
+        }
+
+        .value {
+          font-weight: 700;
+          color: #1976d2;
+        }
+      }
+    }
+
+    .tokens-card {
+      .token-stats {
+        .stat-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 15px 0;
+          border-bottom: 1px solid #e0e0e0;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .label {
+            font-weight: 500;
+            color: #666;
+          }
+
+          .value {
+            font-weight: 600;
+            font-size: 18px;
+          }
+        }
+      }
+    }
+
+    .anomalies-card {
+      grid-column: 1 / -1;
+
+      .anomaly-item {
+        padding: 15px;
+        margin-bottom: 15px;
+        border-left: 4px solid #ff9800;
+        background: #fff3e0;
+        border-radius: 4px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .anomaly-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+
+          strong {
+            font-size: 16px;
+          }
+
+          .increase-badge {
+            background: #ff9800;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+          }
+        }
+
+        .anomaly-details {
+          .reason {
+            margin: 8px 0;
+            color: #666;
+          }
+
+          .recommendation {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0 0;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+
+            mat-icon {
+              color: #ffc107;
+              font-size: 20px;
+              width: 20px;
+              height: 20px;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}

@@ -1,0 +1,123 @@
+<div class="finops-dashboard">
+  <div class="header">
+    <h2>FinOps Dashboard</h2>
+    <button mat-icon-button (click)="refresh()" matTooltip="Refresh">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <mat-spinner></mat-spinner>
+    <p>Loading cost data...</p>
+  </div>
+
+  <div *ngIf="error" class="error">
+    <mat-icon>error</mat-icon>
+    <p>{{ error }}</p>
+  </div>
+
+  <div *ngIf="costSummary && !loading" class="dashboard-content">
+    <!-- Budget Status Card -->
+    <mat-card class="budget-card">
+      <mat-card-header>
+        <mat-card-title>Monthly Budget Status</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-progress-bar
+          mode="determinate"
+          [value]="costSummary.budget_status.percent_used"
+          [color]="getBudgetColor()">
+        </mat-progress-bar>
+        
+        <div class="budget-details">
+          <div class="stat-row">
+            <span class="label">Current Spend:</span>
+            <span class="value">${{ costSummary.budget_status.current_spend_usd.toFixed(2) }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">Monthly Budget:</span>
+            <span class="value">${{ costSummary.budget_status.monthly_budget_usd.toFixed(2) }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">Remaining:</span>
+            <span class="value">${{ costSummary.budget_status.remaining_budget_usd.toFixed(2) }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">Usage:</span>
+            <span class="value">{{ costSummary.budget_status.percent_used.toFixed(1) }}%</span>
+          </div>
+          <div class="stat-row alert-row">
+            <span class="label">Alert Level:</span>
+            <span class="value alert-badge" [ngClass]="getAlertLevelClass()">
+              {{ costSummary.budget_status.alert_level }}
+            </span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Cost by Service Card -->
+    <mat-card class="services-card">
+      <mat-card-header>
+        <mat-card-title>Costs by Service (Current Month)</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="service-list">
+          <div *ngFor="let entry of getServiceCostEntries()" class="service-item">
+            <span class="service-name">{{ entry[0] }}</span>
+            <span class="service-cost">${{ entry[1].toFixed(2) }}</span>
+          </div>
+        </div>
+        
+        <div class="total-row">
+          <span class="label">Total:</span>
+          <span class="value">${{ costSummary.total_cost_usd.toFixed(2) }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Token Usage Card -->
+    <mat-card class="tokens-card">
+      <mat-card-header>
+        <mat-card-title>Vertex AI Token Usage</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="token-stats">
+          <div class="stat-row">
+            <span class="label">Total Tokens:</span>
+            <span class="value">{{ costSummary.token_costs.total_tokens.toLocaleString() }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">Token Cost:</span>
+            <span class="value">${{ costSummary.token_costs.cost_usd.toFixed(2) }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Cost Anomalies Card -->
+    <mat-card class="anomalies-card" *ngIf="anomalies.length > 0">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon class="warning-icon">warning</mat-icon>
+          Cost Anomalies Detected
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngFor="let anomaly of anomalies" class="anomaly-item">
+          <div class="anomaly-header">
+            <strong>{{ anomaly.service }}</strong>
+            <span class="increase-badge">+{{ anomaly.increase_percent.toFixed(1) }}%</span>
+          </div>
+          <div class="anomaly-details">
+            <p class="reason">{{ anomaly.reason }}</p>
+            <p class="recommendation">
+              <mat-icon>lightbulb</mat-icon>
+              {{ anomaly.recommendation }}
+            </p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

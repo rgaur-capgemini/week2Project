@@ -30,6 +30,7 @@ import { HistoryComponent } from './components/history.component';
 import { AdminComponent } from './components/admin.component';
 import { ComplianceComponent } from './components/compliance.component';
 import { ComplianceReportComponent } from './components/compliance-report.component';
+import { FinopsDashboardComponent } from './components/finops-dashboard/finops-dashboard.component'; // Week 4
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 
 @NgModule({
@@ -41,7 +42,8 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
     HistoryComponent,
     AdminComponent,
     ComplianceComponent,
-    ComplianceReportComponent
+    ComplianceReportComponent,
+    FinopsDashboardComponent   // Week 4: FinOps Dashboard
   ],
   imports: [
     BrowserModule,

@@ -1,0 +1,60 @@
+# Canary deployment for gradual rollout
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-backend-canary
+  labels:
+    app: rag-backend
+    version: canary
+spec:
+  replicas: 1  # Start with 1 replica (10% traffic if baseline has 9)
+  selector:
+    matchLabels:
+      app: rag-backend
+      version: canary
+  template:
+    metadata:
+      labels:
+        app: rag-backend
+        version: canary
+    spec:
+      serviceAccountName: rag-backend-sa
+      containers:
+      - name: backend
+        image: gcr.io/btoproject-486405/rag-backend:canary
+        ports:
+        - containerPort: 8000
+        env:
+        - name: MODEL_VARIANT
+          value: "gemini-1.5-pro"  # Test Pro model in canary
+        - name: CANARY_MODE
+          value: "true"
+        - name: PROJECT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: PROJECT_ID
+        - name: VERTEX_LOCATION
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: VERTEX_LOCATION
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5

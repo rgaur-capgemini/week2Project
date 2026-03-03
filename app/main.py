@@ -48,6 +48,9 @@ from app.api_routes import (
     analytics_router
 )
 from app.compliance_routes import compliance_router
+from app.experiment_routes import experiment_router  # Week 4: Experiments
+from app.finops_routes import finops_router  # Week 4: FinOps
+from app.middleware_ab_testing import ABTestingMiddleware  # Week 4: A/B Testing
 import app.api_routes as api_routes_module
 
 # Initialize logger
@@ -199,6 +202,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(ErrorHandlingMiddleware)
 app.add_middleware(RequestValidationMiddleware, max_content_length=config.MAX_FILE_SIZE)
 app.add_middleware(RateLimitMiddleware, max_requests=config.RATE_LIMIT_PER_MINUTE, window_seconds=60)
+app.add_middleware(ABTestingMiddleware, canary_percentage=10, strategy="sticky")  # Week 4: 10% canary traffic
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -215,6 +219,8 @@ app.include_router(auth_router)
 app.include_router(history_router)
 app.include_router(analytics_router)
 app.include_router(compliance_router)  # Week 3: Compliance routes
+app.include_router(experiment_router)  # Week 4: Experiments
+app.include_router(finops_router)  # Week 4: FinOps
 
 @app.get("/api/config")
 async def get_public_config():

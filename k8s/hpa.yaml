@@ -7,33 +7,33 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: rag-backend
-  minReplicas: 3
-  maxReplicas: 10
+  minReplicas: 2  # Reduced from 3 for cost savings
+  maxReplicas: 20  # Increased for better scalability
   metrics:
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 70
+        averageUtilization: 70  # Optimized for efficiency
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 80
+        averageUtilization: 80  # Optimized for efficiency
   behavior:
     scaleDown:
-      stabilizationWindowSeconds: 300
+      stabilizationWindowSeconds: 180  # Faster scale-down (from 300)
       policies:
       - type: Percent
-        value: 50
+        value: 50  # More aggressive scale-down
         periodSeconds: 60
     scaleUp:
-      stabilizationWindowSeconds: 60
+      stabilizationWindowSeconds: 30  # Faster response to load
       policies:
       - type: Percent
-        value: 100
+        value: 100  # Keep aggressive scale-up
         periodSeconds: 30
 ---
 apiVersion: autoscaling/v2
@@ -45,8 +45,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: rag-frontend
-  minReplicas: 2
-  maxReplicas: 5
+  minReplicas: 1  # Reduced from 2 for cost savings
+  maxReplicas: 10  # Increased for scalability
   metrics:
   - type: Resource
     resource:
