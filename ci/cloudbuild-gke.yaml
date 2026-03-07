@@ -4,11 +4,11 @@
 ##
 
 substitutions:
-  _PROJECT_ID: 'btoproject-486405-486604'
+  _PROJECT_ID: 'botpproject'
   _REGION: 'us-central1'
   _GKE_CLUSTER: 'chatbot-rag-gke'
   _GKE_ZONE: 'us-central1-a'
-  _ARTIFACT_REGISTRY: 'us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images'
+  _ARTIFACT_REGISTRY: 'us-central1-docker.pkg.dev/botpproject/rag-service'
   _BACKEND_IMAGE: '${_ARTIFACT_REGISTRY}/backend'
   _FRONTEND_IMAGE: '${_ARTIFACT_REGISTRY}/frontend'
   _SERVICE_ACCOUNT: 'chatbot-rag-backend@${_PROJECT_ID}.iam.gserviceaccount.com'
@@ -304,11 +304,11 @@ substitutions:
 
 # DUPLICATE SUBSTITUTIONS - USING TOP-LEVEL ONES INSTEAD
 # substitutions:
-#   _PROJECT_ID: btoproject-486405-486604
+#   _PROJECT_ID: botpproject
 #   _REGION: us-central1
 #   _GKE_CLUSTER: chatbot-rag-gke
 #   _GKE_ZONE: us-central1-a
-#   _ARTIFACT_REGISTRY: us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images
+#   _ARTIFACT_REGISTRY: us-central1-docker.pkg.dev/botpproject/rag-service
 
 steps:
   # Step 1: Install Python dependencies and run tests with coverage (≥80% required)
@@ -548,11 +548,11 @@ steps:
       - '-c'
       - |
         echo "===== Retagging backend images with full registry path ====="
-        docker tag chatbot-rag-images/backend:$COMMIT_SHA us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:$COMMIT_SHA
-        docker tag chatbot-rag-images/backend:latest us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest
+        docker tag rag-service/backend:$COMMIT_SHA us-central1-docker.pkg.dev/botpproject/rag-service/backend:$COMMIT_SHA
+        docker tag rag-service/backend:latest us-central1-docker.pkg.dev/botpproject/rag-service/backend:latest
         echo "===== Pushing to Artifact Registry ====="
-        docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:$COMMIT_SHA
-        docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest
+        docker push us-central1-docker.pkg.dev/botpproject/rag-service/backend:$COMMIT_SHA
+        docker push us-central1-docker.pkg.dev/botpproject/rag-service/backend:latest
     waitFor: ['auth-backend']
 
   # Step 8: Install frontend dependencies
@@ -799,11 +799,11 @@ steps:
       - '-c'
       - |
         echo "===== Retagging images with full registry path ====="
-        docker tag chatbot-rag-images/frontend:$COMMIT_SHA us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:$COMMIT_SHA
-        docker tag chatbot-rag-images/frontend:latest us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest
+        docker tag rag-service/frontend:$COMMIT_SHA us-central1-docker.pkg.dev/botpproject/rag-service/frontend:$COMMIT_SHA
+        docker tag rag-service/frontend:latest us-central1-docker.pkg.dev/botpproject/rag-service/frontend:latest
         echo "===== Pushing to Artifact Registry ====="
-        docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:$COMMIT_SHA
-        docker push us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest
+        docker push us-central1-docker.pkg.dev/botpproject/rag-service/frontend:$COMMIT_SHA
+        docker push us-central1-docker.pkg.dev/botpproject/rag-service/frontend:latest
     waitFor: ['auth-frontend']
 
   # Step 18: Deploy backend and frontend to GKE
@@ -819,10 +819,10 @@ steps:
           --project=${_PROJECT_ID}
         
         # Replace image tags in deployment files with commit SHA (handle both old and new project IDs)
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/backend:latest|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/chatbot-rag-images/frontend:latest|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest|us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/rag-service/backend:latest|us-central1-docker.pkg.dev/botpproject/rag-service/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/botpproject/rag-service/backend:latest|us-central1-docker.pkg.dev/botpproject/rag-service/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/rag-service/frontend:latest|us-central1-docker.pkg.dev/botpproject/rag-service/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
+        sed -i "s|us-central1-docker.pkg.dev/botpproject/rag-service/frontend:latest|us-central1-docker.pkg.dev/botpproject/rag-service/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
         
         # Apply all Kubernetes resources
         kubectl apply -f k8s/ --namespace=default
@@ -896,7 +896,7 @@ steps:
 # Artifacts to save - DISABLED (causing build failures)
 # artifacts:
 #   objects:
-#     location: 'gs://btoproject-486405-486604-build-artifacts/$BUILD_ID'
+#     location: 'gs://botpproject-build-artifacts/$BUILD_ID'
 #     paths:
 #       - '*.txt'  # Save any text files
 #       # - 'coverage.xml'  # Disabled - tests not running

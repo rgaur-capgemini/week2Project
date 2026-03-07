@@ -1,7 +1,7 @@
 # Enterprise RAG Chatbot - Production System
 
 **Version:** 3.0.0 (Enterprise-Grade)  
-**Project:** btoproject-486405-486604  
+**Project:** botpproject  
 **Regions:** us-central1 (primary), us-east1 (DR)  
 **Status:** ✅ Production Ready
 
@@ -130,7 +130,7 @@ Enterprise-grade Retrieval-Augmented Generation (RAG) chatbot with **full-stack 
 
 ```bash
 # 1. Set GCP Project
-export PROJECT_ID="btoproject-486405-486604"
+export PROJECT_ID="botpproject"
 gcloud config set project ${PROJECT_ID}
 
 # 2. Deploy Infrastructure with Terraform
@@ -265,7 +265,7 @@ MODEL_VARIANT=gemini-2.0-flash-001
 # Storage Configuration
 USE_FIRESTORE=true
 FIRESTORE_COLLECTION=rag_chunks
-GCS_BUCKET=btoproject-486405-486604-rag-documents
+GCS_BUCKET=botpproject-rag-documents
 
 # Application Limits
 MAX_FILE_SIZE=10485760           # 10MB

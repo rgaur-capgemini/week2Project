@@ -160,7 +160,7 @@ echo | openssl s_client -servername <YOUR_DOMAIN> \
 #### 2.1 List Existing Keys
 
 ```bash
-export PROJECT_ID="btoproject-486405-486604"
+export PROJECT_ID="botpproject"
 export SA_EMAIL="rag-backend-sa@${PROJECT_ID}.iam.gserviceaccount.com"
 
 # List all keys for service account

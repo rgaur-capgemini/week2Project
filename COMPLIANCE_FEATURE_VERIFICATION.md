@@ -54,7 +54,7 @@ The implementation follows a **multi-agent agentic workflow** using **LangGraph*
 
 **Template Upload Workflow**:
 - **Endpoint**: `POST /compliance/templates/upload`
-- **Storage**: GCS bucket (`btoproject-486405-486604-compliance-templates`)
+- **Storage**: GCS bucket (`botpproject-compliance-templates`)
 - **Processing**: Pub/Sub → Cloud Function → Chunking → Embedding → Vector Store
 - **Metadata**: Stored in Firestore (`compliance_templates` collection)
 
@@ -179,7 +179,7 @@ curl -X POST "http://34.28.73.87/compliance/templates/upload" \
 ### Step 2: Verify Template in Vector Store
 ```bash
 # Check Firestore for template metadata
-# Check GCS bucket: gs://btoproject-486405-486604-compliance-templates/
+# Check GCS bucket: gs://botpproject-compliance-templates/
 ```
 
 ### Step 3: Upload Document for Analysis

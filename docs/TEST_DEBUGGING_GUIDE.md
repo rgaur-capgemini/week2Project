@@ -240,7 +240,7 @@ with patch('vertexai.language_models.TextEmbeddingModel.from_pretrained') as moc
 **Check environment variables:**
 ```bash
 # Set required env vars
-export PROJECT_ID="btoproject-486405-486604"
+export PROJECT_ID="botpproject"
 export REGION="us-central1"
 export ENVIRONMENT="test"
 
@@ -288,13 +288,13 @@ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
 
 **Step 1: Check Build Status**
 ```bash
-gcloud builds list --project=btoproject-486405-486604 --limit=10
+gcloud builds list --project=botpproject --limit=10
 ```
 
 **Step 2: Get Full Build Log**
 ```bash
 BUILD_ID="<your-build-id>"
-gcloud builds log $BUILD_ID --project=btoproject-486405-486604 > full-build.log
+gcloud builds log $BUILD_ID --project=botpproject > full-build.log
 ```
 
 **Step 3: Extract Test Failures**

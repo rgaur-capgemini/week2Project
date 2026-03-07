@@ -390,7 +390,7 @@ gcloud builds log <BUILD_ID> | grep -A 20 "Coverage Summary"
 ```bash
 # Download from GCS
 BUILD_ID="<your-build-id>"
-gsutil -m cp -r gs://btoproject-486405-486604-test-reports/$BUILD_ID/backend-coverage/ ./
+gsutil -m cp -r gs://botpproject-test-reports/$BUILD_ID/backend-coverage/ ./
 ```
 
 ### 3. Analyze Results

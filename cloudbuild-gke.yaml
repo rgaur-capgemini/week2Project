@@ -2,11 +2,11 @@
 # This pipeline builds, tests, scans, and deploys both backend and frontend to GKE
 
 substitutions:
-  _PROJECT_ID: 'btoproject-486405-486604'
+  _PROJECT_ID: 'botpproject'
   _REGION: 'us-central1'
   _GKE_CLUSTER: 'chatbot-rag-gke'
   _CLUSTER_ZONE: 'us-central1-a'
-  _ARTIFACT_REGISTRY: 'us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images'
+  _ARTIFACT_REGISTRY: 'us-central1-docker.pkg.dev/botpproject/chatbot-rag-images'
   _BACKEND_IMAGE: '${_ARTIFACT_REGISTRY}/backend'
   _FRONTEND_IMAGE: '${_ARTIFACT_REGISTRY}/frontend'
 

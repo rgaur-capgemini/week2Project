@@ -276,7 +276,7 @@ docker run -p 8080:8080 chatbot-frontend:latest
 
 1. **Build and push Docker image**:
 ```bash
-export PROJECT_ID=btoproject-486405-486604
+export PROJECT_ID=botpproject
 export IMAGE_TAG=$(git rev-parse --short HEAD)
 
 docker build -t gcr.io/$PROJECT_ID/chatbot-frontend:$IMAGE_TAG .

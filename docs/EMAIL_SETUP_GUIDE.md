@@ -27,7 +27,7 @@ Email notifications are sent when compliance reports are completed, informing us
 #### 2. Store API Key in GCP Secret Manager
 ```bash
 # In Cloud Shell:
-PROJECT_ID="btoproject-486405-486604"
+PROJECT_ID="botpproject"
 
 # Create secret
 gcloud secrets create sendgrid-api-key \

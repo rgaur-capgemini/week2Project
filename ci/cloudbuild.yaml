@@ -14,14 +14,14 @@ steps:
 # Build Docker image
 - name: gcr.io/cloud-builders/docker
   id: 'build-image'
-  args: ["build", "-t", "gcr.io/btoproject-486405-486604/rag-backend:latest", "."]
+  args: ["build", "-t", "gcr.io/botpproject/rag-backend:latest", "."]
   waitFor: ['run-tests']
 
 # Push Docker image
 - name: gcr.io/cloud-builders/docker
   id: 'push-image'
-  args: ["push", "gcr.io/btoproject-486405-486604/rag-backend:latest"]
+  args: ["push", "gcr.io/botpproject/rag-backend:latest"]
   waitFor: ['build-image']
 
 images:
-- "gcr.io/btoproject-486405-486604/rag-backend:latest"
+- "gcr.io/botpproject/rag-backend:latest"

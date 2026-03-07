@@ -36,9 +36,9 @@ export FROM_EMAIL="noreply@yourdomain.com"
 # Already configured from Week 1/2
 export PROJECT_ID="btoproject-486405"
 export REGION="us-central1"
-export VERTEX_INDEX_ID="4892433118440456192"
-export VERTEX_INDEX_ENDPOINT="7605324128349847552"
-export DEPLOYED_INDEX_ID="chatbot_rag_deployed_1770440353081"
+export VERTEX_INDEX_ID="5347067982386298880"
+export VERTEX_INDEX_ENDPOINT="332186652006940672"
+export DEPLOYED_INDEX_ID="rag_chatbot_deployed"
 ```
 
 ## Step 3: Create GCP Resources
@@ -178,7 +178,7 @@ gcloud functions deploy compliance-template-processor \
   --source=. \
   --entry-point=process_template \
   --trigger-topic=compliance-template-ingestion \
-  --set-env-vars PROJECT_ID=btoproject-486405,REGION=us-central1,VERTEX_INDEX_ID=4892433118440456192,VERTEX_INDEX_ENDPOINT=7605324128349847552,DEPLOYED_INDEX_ID=chatbot_rag_deployed_1770440353081 \
+  --set-env-vars PROJECT_ID=btoproject-486405,REGION=us-central1,VERTEX_INDEX_ID=5347067982386298880,VERTEX_INDEX_ENDPOINT=332186652006940672,DEPLOYED_INDEX_ID=rag_chatbot_deployed \
   --service-account=template-processor-sa@btoproject-486405.iam.gserviceaccount.com \
   --memory=1Gi \
   --timeout=540s

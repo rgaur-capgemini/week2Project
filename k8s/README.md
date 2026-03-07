@@ -9,7 +9,7 @@ This directory contains all Kubernetes manifests needed to deploy the RAG chatbo
    gcloud container clusters create rag-chatbot-cluster \
      --region=us-central1 \
      --enable-ip-alias \
-     --workload-pool=btoproject-486405-486604.svc.id.goog \
+     --workload-pool=botpproject.svc.id.goog \
      --enable-autoscaling \
      --min-nodes=1 \
      --max-nodes=10 \
@@ -23,27 +23,27 @@ This directory contains all Kubernetes manifests needed to deploy the RAG chatbo
      --display-name="RAG Backend Service Account"
    
    # Grant permissions
-   gcloud projects add-iam-policy-binding btoproject-486405-486604 \
-     --member="serviceAccount:rag-backend-sa@btoproject-486405-486604.iam.gserviceaccount.com" \
+   gcloud projects add-iam-policy-binding botpproject \
+     --member="serviceAccount:rag-backend-sa@botpproject.iam.gserviceaccount.com" \
      --role="roles/secretmanager.secretAccessor"
    
-   gcloud projects add-iam-policy-binding btoproject-486405-486604 \
-     --member="serviceAccount:rag-backend-sa@btoproject-486405-486604.iam.gserviceaccount.com" \
+   gcloud projects add-iam-policy-binding botpproject \
+     --member="serviceAccount:rag-backend-sa@botpproject.iam.gserviceaccount.com" \
      --role="roles/aiplatform.user"
    
-   gcloud projects add-iam-policy-binding btoproject-486405-486604 \
-     --member="serviceAccount:rag-backend-sa@btoproject-486405-486604.iam.gserviceaccount.com" \
+   gcloud projects add-iam-policy-binding botpproject \
+     --member="serviceAccount:rag-backend-sa@botpproject.iam.gserviceaccount.com" \
      --role="roles/storage.objectAdmin"
    
-   gcloud projects add-iam-policy-binding btoproject-486405-486604 \
-     --member="serviceAccount:rag-backend-sa@btoproject-486405-486604.iam.gserviceaccount.com" \
+   gcloud projects add-iam-policy-binding botpproject \
+     --member="serviceAccount:rag-backend-sa@botpproject.iam.gserviceaccount.com" \
      --role="roles/datastore.user"
    
    # Bind Kubernetes SA to GCP SA
    gcloud iam service-accounts add-iam-policy-binding \
-     rag-backend-sa@btoproject-486405-486604.iam.gserviceaccount.com \
+     rag-backend-sa@botpproject.iam.gserviceaccount.com \
      --role=roles/iam.workloadIdentityUser \
-     --member="serviceAccount:btoproject-486405-486604.svc.id.goog[default/rag-backend-sa]"
+     --member="serviceAccount:botpproject.svc.id.goog[default/rag-backend-sa]"
    ```
 
 3. **Create Secrets in Secret Manager**:
@@ -56,12 +56,12 @@ This directory contains all Kubernetes manifests needed to deploy the RAG chatbo
 4. **Container Images**: Build and push images to GCR
    ```bash
    # Build backend
-   docker build -t gcr.io/btoproject-486405-486604/rag-backend:latest .
-   docker push gcr.io/btoproject-486405-486604/rag-backend:latest
+   docker build -t gcr.io/botpproject/rag-backend:latest .
+   docker push gcr.io/botpproject/rag-backend:latest
    
    # Build frontend
-   docker build -t gcr.io/btoproject-486405-486604/rag-frontend:latest -f frontend/Dockerfile frontend/
-   docker push gcr.io/btoproject-486405-486604/rag-frontend:latest
+   docker build -t gcr.io/botpproject/rag-frontend:latest -f frontend/Dockerfile frontend/
+   docker push gcr.io/botpproject/rag-frontend:latest
    ```
 
 ## Deployment Order
@@ -142,7 +142,7 @@ kubectl describe hpa rag-backend-hpa
 
 ```bash
 # Update image
-kubectl set image deployment/rag-backend rag-backend=gcr.io/btoproject-486405-486604/rag-backend:v1.2.0
+kubectl set image deployment/rag-backend rag-backend=gcr.io/botpproject/rag-backend:v1.2.0
 
 # Rollback
 kubectl rollout undo deployment/rag-backend

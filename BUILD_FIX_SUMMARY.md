@@ -22,7 +22,7 @@
 ### 2. GCS Bucket Not Existing
 **Problem:** Coverage uploads failing with 404 errors
 ```
-NotFoundException: 404 The destination bucket gs://btoproject-486405-486604-test-reports does not exist
+NotFoundException: 404 The destination bucket gs://botpproject-test-reports does not exist
 ```
 
 **Fix Applied:**

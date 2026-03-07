@@ -44,7 +44,7 @@ gsutil version    # Latest
 
 ### Backup Bucket
 ```bash
-export PROJECT_ID="btoproject-486405-486604"
+export PROJECT_ID="botpproject"
 export BACKUP_BUCKET="gs://${PROJECT_ID}-backups"
 export REGION="us-central1"
 ```
@@ -59,7 +59,7 @@ export REGION="us-central1"
 
 ```bash
 # Set variables
-export PROJECT_ID="btoproject-486405-486604"
+export PROJECT_ID="botpproject"
 export BACKUP_BUCKET="gs://${PROJECT_ID}-backups/firestore"
 export TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 

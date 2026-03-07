@@ -98,7 +98,7 @@ def main():
     print("=" * 80)
     
     # Configuration (UPDATE THESE VALUES)
-    PROJECT_ID = "btoproject-486405-486604"
+    PROJECT_ID = "botpproject"
     REGION = "us-central1"
     
     print(f"\nProject ID: {PROJECT_ID}")

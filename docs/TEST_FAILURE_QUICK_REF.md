@@ -4,11 +4,11 @@
 
 ```bash
 # List recent builds
-gcloud builds list --project=btoproject-486405-486604 --limit=10
+gcloud builds list --project=botpproject --limit=10
 
 # Download full log
 BUILD_ID="<your-build-id>"
-gcloud builds log $BUILD_ID --project=btoproject-486405-486604 > build-log.txt
+gcloud builds log $BUILD_ID --project=botpproject > build-log.txt
 
 # Analyze failures
 python scripts/analyze_test_failures.py build-log.txt
@@ -86,16 +86,16 @@ async def test_async_function():
 BUILD_ID="<your-build-id>"
 
 # View coverage report
-gsutil ls gs://btoproject-486405-486604-test-reports/$BUILD_ID/
+gsutil ls gs://botpproject-test-reports/$BUILD_ID/
 
 # Download coverage HTML
-gsutil -m cp -r gs://btoproject-486405-486604-test-reports/$BUILD_ID/backend-coverage/ ./coverage-reports/
+gsutil -m cp -r gs://botpproject-test-reports/$BUILD_ID/backend-coverage/ ./coverage-reports/
 
 # View test log
-gsutil cat gs://btoproject-486405-486604-test-reports/$BUILD_ID/test-output.log
+gsutil cat gs://botpproject-test-reports/$BUILD_ID/test-output.log
 
 # Download JUnit XML
-gsutil cp gs://btoproject-486405-486604-test-reports/$BUILD_ID/junit.xml ./
+gsutil cp gs://botpproject-test-reports/$BUILD_ID/junit.xml ./
 ```
 
 ## Full Documentation

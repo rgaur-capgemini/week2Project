@@ -110,7 +110,7 @@ gcloud functions deploy compliance-template-processor \
   --max-instances=10 \
   --min-instances=0 \
   --service-account=<YOUR_SERVICE_ACCOUNT>@btoproject-486405.iam.gserviceaccount.com \
-  --set-env-vars="PROJECT_ID=btoproject-486405,REGION=us-central1,VERTEX_INDEX_ID=4892433118440456192,VERTEX_INDEX_ENDPOINT=7605324128349847552,DEPLOYED_INDEX_ID=chatbot_rag_deployed_1770440353081" \
+  --set-env-vars="PROJECT_ID=btoproject-486405,REGION=us-central1,VERTEX_INDEX_ID=5347067982386298880,VERTEX_INDEX_ENDPOINT=332186652006940672,DEPLOYED_INDEX_ID=rag_chatbot_deployed" \
   --project=btoproject-486405
 ```
 

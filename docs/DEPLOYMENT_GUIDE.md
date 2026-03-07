@@ -18,7 +18,7 @@
 - `kubectl` >= 1.28
 - `docker` >= 24.0
 - `git`
-- Access to GCP project: `btoproject-486405-486604`
+- Access to GCP project: `botpproject`
 
 ### GCP Permissions Required
 - Project Owner or Editor
@@ -29,7 +29,7 @@
 
 ### Environment Variables
 ```bash
-export PROJECT_ID="btoproject-486405-486604"
+export PROJECT_ID="botpproject"
 export PROJECT_NUMBER="382685100652"
 export REGION="us-central1"
 export ZONE="us-central1-a"

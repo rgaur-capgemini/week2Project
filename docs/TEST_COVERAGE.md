@@ -161,17 +161,17 @@ npm run test:ci  # Karma already configured to enforce thresholds
 - **Frontend:** `frontend/coverage/chatbot-rag-frontend/index.html`
 
 ### CI/CD Builds
-- **GCS Bucket:** `gs://btoproject-486405-486604-test-reports/`
+- **GCS Bucket:** `gs://botpproject-test-reports/`
 - **Path Structure:** `${BUILD_ID}/[backend|frontend]-coverage/`
 
 ### Viewing Cloud Build Coverage
 ```bash
 # List recent builds
-gsutil ls gs://btoproject-486405-486604-test-reports/
+gsutil ls gs://botpproject-test-reports/
 
 # Download specific build coverage
 BUILD_ID="your-build-id"
-gsutil -m cp -r gs://btoproject-486405-486604-test-reports/${BUILD_ID}/ ./coverage-reports/
+gsutil -m cp -r gs://botpproject-test-reports/${BUILD_ID}/ ./coverage-reports/
 ```
 
 ## Coverage Monitoring Script

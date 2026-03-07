@@ -81,10 +81,10 @@ kubectl get deployment rag-frontend -o yaml > backup-frontend-pre-rollback-${TIM
 kubectl get service rag-backend-service -o yaml > backup-service-${TIMESTAMP}.yaml
 
 # Store in Cloud Storage
-gsutil cp backup-*.yaml gs://btoproject-486405-486604-backups/rollback-${TIMESTAMP}/
+gsutil cp backup-*.yaml gs://botpproject-backups/rollback-${TIMESTAMP}/
 
 # Verify upload
-gsutil ls gs://btoproject-486405-486604-backups/rollback-${TIMESTAMP}/
+gsutil ls gs://botpproject-backups/rollback-${TIMESTAMP}/
 ```
 
 ---

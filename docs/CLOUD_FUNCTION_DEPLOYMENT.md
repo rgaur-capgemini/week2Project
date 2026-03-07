@@ -44,7 +44,7 @@ chmod +x deploy_cloud_function.sh
 #### Step 1: Enable APIs
 
 ```bash
-PROJECT_ID="btoproject-486405-486604"
+PROJECT_ID="botpproject"
 REGION="us-central1"
 
 gcloud services enable cloudfunctions.googleapis.com \
@@ -84,9 +84,9 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 
 ```bash
 # From existing deployment
-VERTEX_INDEX_ID="4892433118440456192"
-VERTEX_INDEX_ENDPOINT="7605324128349847552"
-DEPLOYED_INDEX_ID="chatbot_rag_deployed_1770440353081"
+VERTEX_INDEX_ID="5347067982386298880"
+VERTEX_INDEX_ENDPOINT="332186652006940672"
+DEPLOYED_INDEX_ID="rag_chatbot_deployed"
 
 # Or get from ConfigMap
 kubectl get configmap rag-config -o yaml
