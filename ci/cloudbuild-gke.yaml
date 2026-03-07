@@ -543,16 +543,10 @@ steps:
   # Step 7: Push backend image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-backend'
-    entrypoint: 'bash'
     args:
-      - '-c'
-      - |
-        echo "===== Retagging backend images with full registry path ====="
-        docker tag rag-service/backend:$COMMIT_SHA us-central1-docker.pkg.dev/botpproject/rag-service/backend:$COMMIT_SHA
-        docker tag rag-service/backend:latest us-central1-docker.pkg.dev/botpproject/rag-service/backend:latest
-        echo "===== Pushing to Artifact Registry ====="
-        docker push us-central1-docker.pkg.dev/botpproject/rag-service/backend:$COMMIT_SHA
-        docker push us-central1-docker.pkg.dev/botpproject/rag-service/backend:latest
+      - 'push'
+      - '--all-tags'
+      - '${_ARTIFACT_REGISTRY}/backend'
     waitFor: ['auth-backend']
 
   # Step 8: Install frontend dependencies
@@ -794,16 +788,10 @@ steps:
   # Step 17: Push frontend image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-frontend'
-    entrypoint: 'bash'
     args:
-      - '-c'
-      - |
-        echo "===== Retagging images with full registry path ====="
-        docker tag rag-service/frontend:$COMMIT_SHA us-central1-docker.pkg.dev/botpproject/rag-service/frontend:$COMMIT_SHA
-        docker tag rag-service/frontend:latest us-central1-docker.pkg.dev/botpproject/rag-service/frontend:latest
-        echo "===== Pushing to Artifact Registry ====="
-        docker push us-central1-docker.pkg.dev/botpproject/rag-service/frontend:$COMMIT_SHA
-        docker push us-central1-docker.pkg.dev/botpproject/rag-service/frontend:latest
+      - 'push'
+      - '--all-tags'
+      - '${_ARTIFACT_REGISTRY}/frontend'
     waitFor: ['auth-frontend']
 
   # Step 18: Deploy backend and frontend to GKE
