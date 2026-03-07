@@ -6,7 +6,7 @@ metadata:
     app: rag-chatbot
 data:
   # GCP Configuration
-  PROJECT_ID: "btoproject-486405-486604"
+  PROJECT_ID: "botpproject"
   REGION: "us-central1"
   VERTEX_LOCATION: "us-central1"
   
@@ -15,7 +15,7 @@ data:
   LOG_LEVEL: "INFO"
   
   # Redis Configuration
-  REDIS_HOST: "10.168.174.3"
+  REDIS_HOST: "10.200.18.59"
   REDIS_PORT: "6379"
   REDIS_DB_HISTORY: "0"
   REDIS_DB_ANALYTICS: "1"

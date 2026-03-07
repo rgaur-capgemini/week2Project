@@ -4,9 +4,9 @@
 
 set -e
 
-PROJECT_ID="btoproject-486405-486604"
+PROJECT_ID="botpproject"
 REGION="us-central1"
-SERVICE_ACCOUNT="chatbot-rag-backend@${PROJECT_ID}.iam.gserviceaccount.com"
+SERVICE_ACCOUNT="rag-service@${PROJECT_ID}.iam.gserviceaccount.com"
 
 echo "=== Setting up GCP Resources for Compliance Features ==="
 echo "Project: ${PROJECT_ID}"

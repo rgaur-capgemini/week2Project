@@ -1,27 +1,83 @@
 
+# ──────────────────────────────────────────────────────────────────────────────
+# CI Pipeline — develop branch
+#
+# Triggered on: push to `develop`
+# Purpose: Validate code quality — does NOT deploy anything
+#
+# Stages:
+#   1. test     – pytest unit tests (≥80% coverage required)
+#   2. lint     – flake8 code style check
+#   3. build    – docker build (validates Dockerfile, image NOT pushed)
+# ──────────────────────────────────────────────────────────────────────────────
+
+substitutions:
+  _PROJECT_ID: "botpproject"
+  _REGION: "us-central1"
+  _REGISTRY: "us-central1-docker.pkg.dev/botpproject/rag-service"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+timeout: "1200s"  # 20 minutes
+
 steps:
-# Run tests with coverage
-- name: 'python:3.11-slim'
-  id: 'run-tests'
-  entrypoint: 'bash'
-  args:
-    - '-c'
-    - |
-      pip install --no-cache-dir -r requirements.txt
-      pytest --cov=app --cov-report=term-missing --cov-report=html --cov-fail-under=80 -v
-      echo "✅ Tests passed with >80% coverage"
 
-# Build Docker image
-- name: gcr.io/cloud-builders/docker
-  id: 'build-image'
-  args: ["build", "-t", "gcr.io/btoproject-486405-486604/rag-backend:latest", "."]
-  waitFor: ['run-tests']
+  # ── 1. Run unit tests with coverage ───────────────────────────────────────
+  - id: "run-tests"
+    name: "python:3.11-slim"
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        set -e
+        echo "=========================================="
+        echo "🧪 [develop] Running unit tests"
+        echo "Commit: $COMMIT_SHA | Branch: develop"
+        echo "=========================================="
+        pip install --upgrade pip --quiet
+        pip install -r requirements.txt --quiet
+        pip install pytest pytest-cov pytest-asyncio pytest-mock --quiet
 
-# Push Docker image
-- name: gcr.io/cloud-builders/docker
-  id: 'push-image'
-  args: ["push", "gcr.io/btoproject-486405-486604/rag-backend:latest"]
-  waitFor: ['build-image']
+        pytest tests/unit \
+          --cov=app \
+          --cov-report=term-missing \
+          --cov-fail-under=80 \
+          --tb=short \
+          -v \
+          --junitxml=/workspace/test-results/junit.xml
 
-images:
-- "gcr.io/btoproject-486405-486604/rag-backend:latest"
+        echo "✅ Tests passed with ≥80% coverage"
+    waitFor: ["-"]
+
+  # ── 2. Lint ────────────────────────────────────────────────────────────────
+  - id: "lint"
+    name: "python:3.11-slim"
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        pip install flake8 --quiet
+        echo "=========================================="
+        echo "🔍 [develop] Running flake8 lint"
+        echo "=========================================="
+        flake8 app/ \
+          --max-line-length=120 \
+          --exclude=__pycache__,.git,*.pyc \
+          --per-file-ignores="__init__.py:F401" \
+          --count --statistics
+        echo "✅ Lint passed"
+    waitFor: ["-"]
+
+  # ── 3. Docker build (validate only — NOT pushed) ──────────────────────────
+  - id: "build-image"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "-t"
+      - "${_REGISTRY}/rag-service:dev-$SHORT_SHA"
+      - "."
+    waitFor: ["run-tests", "lint"]
+
+tags: ["develop", "ci-only"]

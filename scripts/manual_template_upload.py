@@ -97,8 +97,8 @@ def main():
     print("Manual Template Upload Script")
     print("=" * 80)
     
-    # Configuration (UPDATE THESE VALUES)
-    PROJECT_ID = "btoproject-486405-486604"
+    # Configuration
+    PROJECT_ID = "botpproject"
     REGION = "us-central1"
     
     print(f"\nProject ID: {PROJECT_ID}")

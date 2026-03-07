@@ -32,6 +32,8 @@ import { ComplianceComponent } from './components/compliance.component';
 import { ComplianceReportComponent } from './components/compliance-report.component';
 import { FinopsDashboardComponent } from './components/finops-dashboard/finops-dashboard.component'; // Week 4
 import { AuthInterceptor } from './interceptors/auth.interceptor';
+import { AuthGuard } from './guards/auth.guard';
+import { AdminGuard } from './guards/admin.guard';
 
 @NgModule({
   declarations: [
@@ -72,7 +74,9 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
       multi: true
-    }
+    },
+    AuthGuard,
+    AdminGuard
   ],
   bootstrap: [AppComponent]
 })

@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { AnalyticsService } from '../services/analytics.service';
+import { AuthService } from '../services/auth.service';
 import { UsageStats, LatencyStats, SystemOverview, UserActivity } from '../models/models';
 
 @Component({
@@ -189,9 +191,18 @@ export class AdminComponent implements OnInit {
   selectedEndpoint = '/query';
   displayedColumns: string[] = ['endpoint', 'total_calls', 'unique_users', 'error_rate', 'avg_tokens'];
 
-  constructor(private analyticsService: AnalyticsService) {}
+  constructor(
+    private analyticsService: AnalyticsService,
+    public authService: AuthService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
+    // Defence-in-depth: redirect non-admins even if guard was bypassed
+    if (!this.authService.isAdmin) {
+      this.router.navigate(['/chat']);
+      return;
+    }
     this.loadSystemOverview();
   }
 

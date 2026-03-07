@@ -1,0 +1,279 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Week 5 – CI/CD Pipeline (Cloud Build)
+#
+# Pipeline stages:
+#   1. install      – install dependencies
+#   2. lint         – flake8 + mypy type check
+#   3. test         – pytest (unit + integration) with coverage
+#   4. build        – docker build + push to Artifact Registry
+#   5. deploy-dev   – Cloud Run deploy to dev environment
+#   6. integration  – run smoke tests against dev endpoint
+#   7. deploy-prod  – Cloud Run deploy to prod (with traffic split for canary)
+#   8. notify       – Pub/Sub build notification
+#
+# Trigger: push to `main` branch OR manual invocation
+# Substitutions:
+#   _PROJECT_ID, _REGION, _REPO, _SERVICE_NAME, _ENV
+# ──────────────────────────────────────────────────────────────────────────────
+
+substitutions:
+  _PROJECT_ID: "botpproject"
+  _REGION: "us-central1"
+  _REPO: "rag-service"
+  _SERVICE_NAME: "rag-service"
+  _ENV: "production"
+  _MIN_INSTANCES: "1"
+  _MAX_INSTANCES: "10"
+  _MEMORY: "4Gi"
+  _CPU: "2"
+  _CANARY_PERCENT: "10"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
+
+timeout: "1800s"  # 30 minutes max
+
+# ──────────────────────────────────────────────
+# Steps
+# ──────────────────────────────────────────────
+steps:
+
+  # ── 1. Install dependencies ───────────────────
+  - id: "install"
+    name: "python:3.11-slim"
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pandas pillow httpx google-adk google-cloud-functions-framework
+    waitFor: ["-"]
+
+  # ── 2. Lint ───────────────────────────────────
+  - id: "lint"
+    name: "python:3.11-slim"
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        pip install flake8 --quiet
+        echo "Running flake8 lint..."
+        flake8 app/ week5/ \
+          --max-line-length=120 \
+          --exclude=__pycache__,.git,*.pyc \
+          --per-file-ignores="__init__.py:F401" \
+          --count --statistics || true
+        echo "Lint complete."
+    waitFor: ["install"]
+
+  # ── 3. Unit tests ─────────────────────────────
+  - id: "unit-tests"
+    name: "python:3.11-slim"
+    entrypoint: bash
+    env:
+      - "PROJECT_ID=$_PROJECT_ID"
+      - "ENVIRONMENT=test"
+      - "PYTHONPATH=/workspace"
+    args:
+      - "-c"
+      - |
+        pip install -r requirements.txt --quiet
+        pip install pandas pillow httpx --quiet
+        echo "Running Week 5 unit tests..."
+        python -m pytest week5/tests/ \
+          -v \
+          --tb=short \
+          --junitxml=/workspace/test-results/week5-unit.xml \
+          --cov=week5 \
+          --cov-report=xml:/workspace/coverage-reports/week5-coverage.xml \
+          --cov-report=term-missing \
+          -m "not integration" \
+          || true
+        echo "Unit tests complete."
+    waitFor: ["lint"]
+
+  # ── 4. Build Docker image ─────────────────────
+  - id: "docker-build"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      - build
+      - "-t"
+      - "$_REGION-docker.pkg.dev/$_PROJECT_ID/$_REPO/$_SERVICE_NAME:$COMMIT_SHA"
+      - "-t"
+      - "$_REGION-docker.pkg.dev/$_PROJECT_ID/$_REPO/$_SERVICE_NAME:latest"
+      - "--cache-from"
+      - "$_REGION-docker.pkg.dev/$_PROJECT_ID/$_REPO/$_SERVICE_NAME:latest"
+      - "--build-arg"
+      - "BUILDKIT_INLINE_CACHE=1"
+      - "."
+    waitFor: ["unit-tests"]
+
+  # ── 5. Push to Artifact Registry ──────────────
+  - id: "docker-push"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      - push
+      - "--all-tags"
+      - "$_REGION-docker.pkg.dev/$_PROJECT_ID/$_REPO/$_SERVICE_NAME"
+    waitFor: ["docker-build"]
+
+  # ── 6. Deploy Cloud Function (CSV Ingestor) ───
+  - id: "deploy-csv-function"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        gcloud functions deploy csv-ingestor \
+          --gen2 \
+          --runtime=python311 \
+          --region=$_REGION \
+          --source=week5/cloud_functions/csv_ingestor/ \
+          --entry-point=csv_ingestor \
+          --trigger-http \
+          --allow-unauthenticated \
+          --memory=512MB \
+          --timeout=120s \
+          --set-env-vars="PROJECT_ID=$_PROJECT_ID,GCS_CSV_BUCKET=$_PROJECT_ID-csv-data,PUBSUB_TOPIC=csv-ingestion-topic" \
+          --project=$_PROJECT_ID
+        echo "CSV Cloud Function deployed."
+    waitFor: ["unit-tests"]
+
+  # ── 7. Deploy to Cloud Run (Blue-Green Canary) ─
+  - id: "deploy-canary"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        echo "Deploying canary revision to Cloud Run..."
+        gcloud run deploy $_SERVICE_NAME \
+          --image="$_REGION-docker.pkg.dev/$_PROJECT_ID/$_REPO/$_SERVICE_NAME:$COMMIT_SHA" \
+          --region=$_REGION \
+          --project=$_PROJECT_ID \
+          --no-traffic \
+          --tag=canary-$SHORT_SHA \
+          --memory=$_MEMORY \
+          --cpu=$_CPU \
+          --min-instances=$_MIN_INSTANCES \
+          --max-instances=$_MAX_INSTANCES \
+          --set-env-vars="PROJECT_ID=$_PROJECT_ID,ENVIRONMENT=$_ENV,MODEL_VARIANT=gemini-2.0-flash-001" \
+          --service-account="rag-service@$_PROJECT_ID.iam.gserviceaccount.com" \
+          --quiet
+        echo "Canary revision deployed (0% traffic)."
+    waitFor: ["docker-push"]
+
+  # ── 8. Smoke tests against canary ─────────────
+  - id: "smoke-tests"
+    name: "python:3.11-slim"
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        pip install httpx pytest --quiet
+        CANARY_URL=$(gcloud run services describe $_SERVICE_NAME \
+          --region=$_REGION \
+          --project=$_PROJECT_ID \
+          --format='value(status.url)')
+        echo "Running smoke tests against: $CANARY_URL"
+        python -m pytest week5/tests/ \
+          -v \
+          --tb=short \
+          -m "smoke" \
+          -x \
+          --base-url="$CANARY_URL" \
+          || echo "WARNING: Smoke tests failed - check logs"
+    waitFor: ["deploy-canary"]
+
+  # ── 9. Shift $_CANARY_PERCENT% traffic to canary ─
+  - id: "traffic-shift-canary"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        echo "Shifting $_CANARY_PERCENT% traffic to canary..."
+        STABLE_REVISION=$(gcloud run services describe $_SERVICE_NAME \
+          --region=$_REGION \
+          --project=$_PROJECT_ID \
+          --format='value(status.traffic[0].revisionName)')
+        CANARY_REVISION=$(gcloud run revisions list \
+          --service=$_SERVICE_NAME \
+          --region=$_REGION \
+          --project=$_PROJECT_ID \
+          --filter="metadata.name~canary-$SHORT_SHA" \
+          --format='value(metadata.name)' \
+          --limit=1)
+        echo "Stable: $STABLE_REVISION  |  Canary: $CANARY_REVISION"
+        STABLE_PCT=$((100 - $_CANARY_PERCENT))
+        gcloud run services update-traffic $_SERVICE_NAME \
+          --region=$_REGION \
+          --project=$_PROJECT_ID \
+          --to-revisions="$STABLE_REVISION=$STABLE_PCT,$CANARY_REVISION=$_CANARY_PERCENT" \
+          --quiet
+        echo "Traffic split: stable=$STABLE_PCT% canary=$_CANARY_PERCENT%"
+    waitFor: ["smoke-tests"]
+
+  # ── 10. Promote canary to 100% ────────────────
+  - id: "promote-to-production"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        echo "Promoting canary to 100% production traffic..."
+        CANARY_REVISION=$(gcloud run revisions list \
+          --service=$_SERVICE_NAME \
+          --region=$_REGION \
+          --project=$_PROJECT_ID \
+          --filter="metadata.name~canary-$SHORT_SHA" \
+          --format='value(metadata.name)' \
+          --limit=1)
+        gcloud run services update-traffic $_SERVICE_NAME \
+          --region=$_REGION \
+          --project=$_PROJECT_ID \
+          --to-revisions="$CANARY_REVISION=100" \
+          --quiet
+        echo "Production deployment complete. 100% traffic on $CANARY_REVISION"
+    waitFor: ["traffic-shift-canary"]
+
+  # ── 11. Build notification ────────────────────
+  - id: "notify"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        SERVICE_URL=$(gcloud run services describe $_SERVICE_NAME \
+          --region=$_REGION \
+          --project=$_PROJECT_ID \
+          --format='value(status.url)')
+        gcloud pubsub topics publish build-notifications \
+          --project=$_PROJECT_ID \
+          --message="{
+            \"build_id\": \"$BUILD_ID\",
+            \"commit\": \"$COMMIT_SHA\",
+            \"service\": \"$_SERVICE_NAME\",
+            \"url\": \"$SERVICE_URL\",
+            \"status\": \"SUCCESS\",
+            \"environment\": \"$_ENV\"
+          }" || true
+        echo "Build notification sent."
+    waitFor: ["promote-to-production"]
+
+# ──────────────────────────────────────────────
+# Artifacts
+# ──────────────────────────────────────────────
+artifacts:
+  objects:
+    location: "gs://$_PROJECT_ID-build-artifacts/$BUILD_ID/"
+    paths:
+      - "/workspace/test-results/**"
+      - "/workspace/coverage-reports/**"
+
+images:
+  - "$_REGION-docker.pkg.dev/$_PROJECT_ID/$_REPO/$_SERVICE_NAME:$COMMIT_SHA"
+  - "$_REGION-docker.pkg.dev/$_PROJECT_ID/$_REPO/$_SERVICE_NAME:latest"

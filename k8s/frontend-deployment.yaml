@@ -34,7 +34,7 @@ spec:
       
       containers:
       - name: rag-frontend
-        image: us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/frontend:latest
+        image: us-central1-docker.pkg.dev/botpproject/rag-service/rag-frontend:latest
         imagePullPolicy: Always
         
         ports:

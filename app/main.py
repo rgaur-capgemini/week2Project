@@ -53,8 +53,17 @@ from app.finops_routes import finops_router  # Week 4: FinOps
 from app.middleware_ab_testing import ABTestingMiddleware  # Week 4: A/B Testing
 import app.api_routes as api_routes_module
 
-# Initialize logger
+# Initialize logger (must be before any code that uses it)
 logger = get_logger(__name__)
+
+# Week 5: Agentic AI, Multimodal, Enhanced RAG
+try:
+    from week5.api.agent_routes import agent_router, rag_router
+    from week5.api.multimodal_routes import multimodal_router
+    WEEK5_ENABLED = True
+except ImportError:
+    WEEK5_ENABLED = False
+    logger.warning("Week 5 modules not found – week5 features disabled.")
 
 # Service instances (will be initialized at startup)
 embedder: Optional[VertexTextEmbedder] = None
@@ -221,6 +230,12 @@ app.include_router(analytics_router)
 app.include_router(compliance_router)  # Week 3: Compliance routes
 app.include_router(experiment_router)  # Week 4: Experiments
 app.include_router(finops_router)  # Week 4: FinOps
+
+# Week 5: Agentic AI + Multimodal + Enhanced RAG routes
+if WEEK5_ENABLED:
+    app.include_router(agent_router)       # Week 5: Agentic AI
+    app.include_router(rag_router)         # Week 5: Enhanced RAG
+    app.include_router(multimodal_router)  # Week 5: Multimodal
 
 @app.get("/api/config")
 async def get_public_config():

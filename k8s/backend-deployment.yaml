@@ -34,7 +34,7 @@ spec:
       
       containers:
       - name: rag-backend
-        image: us-central1-docker.pkg.dev/btoproject-486405-486604/chatbot-rag-images/backend:latest
+        image: us-central1-docker.pkg.dev/botpproject/rag-service/rag-service:latest
         imagePullPolicy: Always
         
         ports:
@@ -44,21 +44,21 @@ spec:
         
         env:
         - name: PROJECT_ID
-          value: "btoproject-486405-486604"
+          value: "botpproject"
         - name: PROJECT_NUMBER
-          value: "382685100652"
+          value: "430569389330"
         - name: REGION
           value: "us-central1"
         - name: VERTEX_LOCATION
           value: "us-central1"
         - name: VERTEX_INDEX_ID
-          value: "4892433118440456192"
+          value: "5347067982386298880"
         - name: VERTEX_INDEX_ENDPOINT
-          value: "7605324128349847552"
+          value: "332186652006940672"
         - name: VERTEX_INDEX_ENDPOINT_ID
-          value: "7605324128349847552"
+          value: "332186652006940672"
         - name: DEPLOYED_INDEX_ID
-          value: "chatbot_rag_deployed_1770440353081"
+          value: "rag_chatbot_deployed"
         - name: REDIS_HOST
           valueFrom:
             configMapKeyRef:
@@ -68,6 +68,16 @@ spec:
           value: "6379"
         - name: ADMIN_EMAILS
           value: "raman.gaur@capgemini.com"
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: google-oauth-client-id
+              key: latest
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: chatbot-jwt-secret
+              key: latest
         - name: ENVIRONMENT
           value: "production"
         - name: LOG_LEVEL

@@ -34,7 +34,7 @@ class OIDCAuthenticator:
     
     def __init__(self):
         self.project_id = config.PROJECT_ID
-        self.project_number = os.getenv("PROJECT_NUMBER", "382685100652")
+        self.project_number = os.getenv("PROJECT_NUMBER", "430569389330")  # botpproject
         
         # OAuth 2.0 Client ID from Secret Manager
         self.client_id = self._get_oauth_client_id()
@@ -325,6 +325,15 @@ async def get_current_user(
     
     try:
         user_info = await authenticator.authenticate(token)
+        
+        # Always inject the authoritative role from RBAC so every route handler
+        # has a consistent 'role' field regardless of token type.
+        # raman.gaur@capgemini.com → 'admin', everyone else → 'user'
+        from app.auth.rbac import get_rbac_manager
+        rbac = get_rbac_manager()
+        role = rbac.get_user_role(user_info)
+        user_info["role"] = role.value
+        
         return user_info
     except HTTPException:
         raise

@@ -26,7 +26,7 @@ class TestChatHistoryStoreInit:
         mock_redis_class.return_value = mock_redis
         
         store = ChatHistoryStore()
-        assert store.host == "10.168.174.3"
+        assert store.host == "10.200.18.59"
         assert store.port == 6379
         assert store.db == 0
         assert store.ttl_seconds == 90 * 24 * 60 * 60

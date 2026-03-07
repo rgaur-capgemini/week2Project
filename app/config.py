@@ -23,15 +23,15 @@ class Config:
     
     def __init__(self):
         # GCP Configuration
-        self.PROJECT_ID = os.getenv("PROJECT_ID", "btoproject-486405-486604")
+        self.PROJECT_ID = os.getenv("PROJECT_ID", "botpproject")
         self.REGION = os.getenv("REGION", "us-central1")
         self.ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
         
         # Vertex AI Configuration
         self.VERTEX_LOCATION = os.getenv("VERTEX_LOCATION", self.REGION)
-        self.VERTEX_INDEX_ID = os.getenv("VERTEX_INDEX_ID", "4892433118440456192")
-        self.VERTEX_INDEX_ENDPOINT = os.getenv("VERTEX_INDEX_ENDPOINT", "7605324128349847552")
-        self.DEPLOYED_INDEX_ID = os.getenv("DEPLOYED_INDEX_ID", "chatbot_rag_deployed_1770440353081")
+        self.VERTEX_INDEX_ID = os.getenv("VERTEX_INDEX_ID", "5347067982386298880")  # botpproject rag-chatbot-index
+        self.VERTEX_INDEX_ENDPOINT = os.getenv("VERTEX_INDEX_ENDPOINT", "332186652006940672")  # botpproject rag-chatbot-endpoint
+        self.DEPLOYED_INDEX_ID = os.getenv("DEPLOYED_INDEX_ID", "rag_chatbot_deployed")  # botpproject deployed index
         
         # Model Configuration
         self.MODEL_VARIANT = os.getenv("MODEL_VARIANT", "gemini-2.0-flash-001")
@@ -60,6 +60,16 @@ class Config:
         
         # Cloud Storage Configuration (for document storage)
         self.GCS_BUCKET = os.getenv("GCS_BUCKET", f"{self.PROJECT_ID}-rag-documents")
+        self.GCS_CSV_BUCKET = os.getenv("GCS_CSV_BUCKET", f"{self.PROJECT_ID}-csv-data")
+
+        # OAuth / JWT Configuration
+        self.PROJECT_NUMBER = os.getenv("PROJECT_NUMBER", "430569389330")  # botpproject
+        self.GOOGLE_CLIENT_ID = os.getenv(
+            "GOOGLE_CLIENT_ID",
+            "430569389330-t6c0ek7vsj9tbtpcmh1ljsnhr8hslpma.apps.googleusercontent.com"
+        )
+        self.ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+        self.REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
         
         # Logging Configuration
         self.LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -68,7 +78,7 @@ class Config:
         self._secret_client = None
         
         # Redis Configuration
-        self.REDIS_HOST = os.getenv("REDIS_HOST", "10.168.174.3")
+        self.REDIS_HOST = os.getenv("REDIS_HOST", "10.200.18.59")  # botpproject rag-redis us-central1
         self.REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
         self.REDIS_DB_HISTORY = int(os.getenv("REDIS_DB_HISTORY", "0"))
         self.REDIS_DB_ANALYTICS = int(os.getenv("REDIS_DB_ANALYTICS", "1"))
@@ -76,7 +86,7 @@ class Config:
         self.REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
         
         # Admin Configuration
-        admin_emails_str = os.getenv("ADMIN_EMAILS", "")
+        admin_emails_str = os.getenv("ADMIN_EMAILS", "raman.gaur@capgemini.com")
         self.ADMIN_EMAILS = [email.strip() for email in admin_emails_str.split(",") if email.strip()]
     
     @property

@@ -4,8 +4,8 @@
 
 set -e
 
-PROJECT_ID="btoproject-486405-486604"
-SERVICE_ACCOUNT="chatbot-rag-backend@${PROJECT_ID}.iam.gserviceaccount.com"
+PROJECT_ID="botpproject"
+SERVICE_ACCOUNT="rag-service@${PROJECT_ID}.iam.gserviceaccount.com"
 
 echo "╔════════════════════════════════════════════════════════╗"
 echo "║  GCP Compliance Feature Setup - Quick Start           ║"
