@@ -16,7 +16,7 @@ class TestConfigInit:
         with patch.dict(os.environ, {}, clear=True):
             config = Config()
             
-            assert config.PROJECT_ID == "btoproject-486405"
+            assert config.PROJECT_ID == "botpproject"
             assert config.REGION == "us-central1"
             assert config.ENVIRONMENT == "production"
     

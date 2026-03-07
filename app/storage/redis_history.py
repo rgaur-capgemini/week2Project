@@ -4,6 +4,7 @@ Provides user-specific conversation persistence with TTL and pagination.
 """
 
 import json
+import os
 import time
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
@@ -47,8 +48,8 @@ class ChatHistoryStore:
             db: Redis database number
             ttl_days: Days to keep chat history
         """
-        self.host = host or config.get_env("REDIS_HOST", "10.168.174.3")
-        self.port = port or int(config.get_env("REDIS_PORT", "6379"))
+        self.host = host or os.getenv("REDIS_HOST", "10.200.18.59")
+        self.port = port or int(os.getenv("REDIS_PORT", "6379"))
         self.db = db
         self.ttl_seconds = ttl_days * 24 * 60 * 60
         
