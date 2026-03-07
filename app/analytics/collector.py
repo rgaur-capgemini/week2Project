@@ -4,6 +4,7 @@ Tracks usage, latency, token costs, and system performance.
 """
 
 import time
+import os
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -45,8 +46,8 @@ class AnalyticsCollector:
         db: int = 1  # Use different DB than chat history
     ):
         """Initialize analytics collector."""
-        self.host = host or config.get_env("REDIS_HOST", "10.168.174.3")
-        self.port = port or int(config.get_env("REDIS_PORT", "6379"))
+        self.host = host or os.getenv("REDIS_HOST", "10.200.18.59")
+        self.port = port or int(os.getenv("REDIS_PORT", "6379"))
         self.db = db
         
         # Get password from Secret Manager
