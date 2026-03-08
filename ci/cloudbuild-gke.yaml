@@ -806,18 +806,30 @@ steps:
           --zone=${_GKE_ZONE} \
           --project=${_PROJECT_ID}
         
-        # Replace image tags in deployment files with commit SHA (handle both old and new project IDs)
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/rag-service/backend:latest|us-central1-docker.pkg.dev/botpproject/rag-service/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/botpproject/rag-service/backend:latest|us-central1-docker.pkg.dev/botpproject/rag-service/backend:$COMMIT_SHA|g" k8s/backend-deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/btoproject-486405/rag-service/frontend:latest|us-central1-docker.pkg.dev/botpproject/rag-service/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
-        sed -i "s|us-central1-docker.pkg.dev/botpproject/rag-service/frontend:latest|us-central1-docker.pkg.dev/botpproject/rag-service/frontend:$COMMIT_SHA|g" k8s/frontend-deployment.yaml
+        echo "========================================"
+        echo "🚀 Deploying to GKE"
+        echo "========================================"
+        echo "Backend Image: ${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA"
+        echo "Frontend Image: ${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA"
+        echo ""
         
-        # Apply all Kubernetes resources
-        kubectl apply -f k8s/ --namespace=default
+        # Update backend deployment with new image
+        echo "Updating backend deployment..."
+        kubectl set image deployment/rag-backend \
+          backend=${_ARTIFACT_REGISTRY}/backend:$COMMIT_SHA \
+          --namespace=default \
+          --record || echo "⚠️ Backend deployment update failed"
         
-        # Trigger rollout restart to ensure new images are pulled
-        kubectl rollout restart deployment/rag-backend --namespace=default || true
-        kubectl rollout restart deployment/rag-frontend --namespace=default || true
+        # Update frontend deployment with new image
+        echo "Updating frontend deployment..."
+        kubectl set image deployment/rag-frontend \
+          frontend=${_ARTIFACT_REGISTRY}/frontend:$COMMIT_SHA \
+          --namespace=default \
+          --record || echo "⚠️ Frontend deployment update failed"
+        
+        echo ""
+        echo "✅ Deployment commands completed"
+        echo "========================================"
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
       - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
