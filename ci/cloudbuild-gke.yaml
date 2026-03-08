@@ -550,7 +550,7 @@ steps:
     waitFor: ['auth-backend']
 
   # Step 8: Install frontend dependencies
-  # Use npm install instead of npm ci since package-lock.json may not exist
+  # Use npm install with --legacy-peer-deps to handle chart.js and ng2-charts dependencies
   - name: 'node:20'
     id: 'frontend-install'
     entrypoint: 'bash'
@@ -561,13 +561,9 @@ steps:
           echo "ERROR: package.json not found in frontend directory"
           exit 1
         fi
-        if [ -f package-lock.json ]; then
-          echo "Using npm ci (package-lock.json found)"
-          npm ci
-        else
-          echo "Using npm install (no package-lock.json found)"
-          npm install
-        fi
+        echo "Installing dependencies with npm install --legacy-peer-deps"
+        rm -rf node_modules package-lock.json
+        npm install --legacy-peer-deps
     dir: 'frontend'
     waitFor: ['-']
 
