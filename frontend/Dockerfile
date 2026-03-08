@@ -8,7 +8,8 @@ COPY package*.json ./
 
 # Install ALL dependencies (including dev deps) for building
 # Dev dependencies include @angular/cli which is needed for 'ng build'
-RUN npm install --legacy-peer-deps
+# Force clean install to avoid cache issues
+RUN rm -rf node_modules package-lock.json && npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
