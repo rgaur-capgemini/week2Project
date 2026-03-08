@@ -1,0 +1,245 @@
+<div class="finops-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <h1>💰 FinOps Dashboard</h1>
+    <div class="header-actions">
+      <span class="last-updated" *ngIf="lastUpdated">
+        Last updated: {{ formatDate(lastUpdated) }}
+      </span>
+      <button class="btn-refresh" (click)="refresh()" [disabled]="loading">
+        <span class="refresh-icon" [class.spinning]="loading">🔄</span> Refresh
+      </button>
+      <button class="btn-auto-refresh" (click)="toggleAutoRefresh()" [class.active]="autoRefreshEnabled">
+        {{ autoRefreshEnabled ? '⏸️ Pause' : '▶️ Resume' }} Auto-Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading && !costs" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading dashboard data...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <p class="error-message">{{ error }}</p>
+    <button class="btn-retry" (click)="refresh()">Try Again</button>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!loading || costs" class="dashboard-content">
+    
+    <!-- Summary Cards Row -->
+    <div class="summary-cards">
+      <!-- Total Cost Card -->
+      <div class="card card-cost">
+        <div class="card-icon">💵</div>
+        <div class="card-content">
+          <h3>Current Month Cost</h3>
+          <div class="card-value">{{ formatCurrency(costs?.total_cost || 0) }}</div>
+          <p class="card-subtitle">{{ costs?.period || 'N/A' }}</p>
+        </div>
+      </div>
+
+      <!-- Forecast Card -->
+      <div class="card card-forecast">
+        <div class="card-icon">📊</div>
+        <div class="card-content">
+          <h3>Forecasted Cost</h3>
+          <div class="card-value">{{ formatCurrency(forecast?.forecasted_cost || 0) }}</div>
+          <p class="card-subtitle" [class.trend-up]="forecast?.trend === 'up'" [class.trend-down]="forecast?.trend === 'down'">
+            {{ forecast?.trend === 'up' ? '📈' : '📉' }} Trend: {{ forecast?.trend || 'N/A' }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Token Usage Card -->
+      <div class="card card-tokens">
+        <div class="card-icon">🎫</div>
+        <div class="card-content">
+          <h3>Token Usage</h3>
+          <div class="card-value">{{ formatNumber(tokenUsage?.total_tokens || 0) }}</div>
+          <p class="card-subtitle">Cost: {{ formatCurrency(tokenUsage?.total_cost || 0) }}</p>
+        </div>
+      </div>
+
+      <!-- Active Alerts Card -->
+      <div class="card card-alerts" [class.has-alerts]="alerts.length > 0">
+        <div class="card-icon">🚨</div>
+        <div class="card-content">
+          <h3>Active Alerts</h3>
+          <div class="card-value">{{ alerts.length }}</div>
+          <p class="card-subtitle">{{ alerts.length === 0 ? 'All systems normal' : 'Requires attention' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-row">
+      <!-- Cost by Service Chart -->
+      <div class="chart-container">
+        <h2>💸 Cost by Service</h2>
+        <div class="chart-wrapper" *ngIf="costChartData">
+          <canvas baseChart
+            [data]="costChartData"
+            [options]="costChartOptions"
+            [type]="'bar'">
+          </canvas>
+        </div>
+        <div class="no-data" *ngIf="!costChartData">
+          <p>No cost data available</p>
+        </div>
+      </div>
+
+      <!-- Budget Status Chart -->
+      <div class="chart-container">
+        <h2>🎯 Budget Status</h2>
+        <div class="chart-wrapper" *ngIf="budgetChartData">
+          <canvas baseChart
+            [data]="budgetChartData"
+            [options]="budgetChartOptions"
+            [type]="'doughnut'">
+          </canvas>
+        </div>
+        <div class="no-data" *ngIf="!budgetChartData || budgets.length === 0">
+          <p>No budgets configured</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Budgets Table -->
+    <div class="section budgets-section">
+      <h2>💰 Active Budgets</h2>
+      <div class="table-container" *ngIf="budgets.length > 0">
+        <table class="budgets-table">
+          <thead>
+            <tr>
+              <th>Budget Name</th>
+              <th>Amount</th>
+              <th>Spent</th>
+              <th>Remaining</th>
+              <th>Utilization</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let budget of budgets" [class]="getBudgetStatusClass(budget)">
+              <td><strong>{{ budget.name }}</strong></td>
+              <td>{{ formatCurrency(budget.amount) }}</td>
+              <td>{{ formatCurrency(budget.spent) }}</td>
+              <td>{{ formatCurrency(budget.remaining) }}</td>
+              <td>
+                <div class="progress-bar">
+                  <div class="progress-fill" [style.width.%]="getBudgetPercentage(budget)"></div>
+                  <span class="progress-text">{{ getBudgetPercentage(budget) }}%</span>
+                </div>
+              </td>
+              <td>
+                <span class="status-badge" [class]="getBudgetStatusClass(budget)">
+                  {{ budget.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="no-data" *ngIf="budgets.length === 0">
+        <p>No budgets configured. Create budgets to track spending limits.</p>
+      </div>
+    </div>
+
+    <!-- Alerts Section -->
+    <div class="section alerts-section" *ngIf="alerts.length > 0">
+      <h2>🚨 Active Alerts</h2>
+      <div class="alerts-list">
+        <div *ngFor="let alert of alerts" class="alert-card" [class]="getSeverityClass(alert.severity)">
+          <div class="alert-header">
+            <span class="alert-type">{{ alert.type }}</span>
+            <span class="alert-severity">{{ alert.severity }}</span>
+          </div>
+          <div class="alert-message">{{ alert.message }}</div>
+          <div class="alert-timestamp">{{ formatDate(alert.timestamp) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cost Anomalies -->
+    <div class="section anomalies-section" *ngIf="anomalies.length > 0">
+      <h2>⚠️ Cost Anomalies Detected</h2>
+      <div class="anomalies-list">
+        <div *ngFor="let anomaly of anomalies" class="anomaly-card" [class]="getSeverityClass(anomaly.severity)">
+          <div class="anomaly-icon">{{ getAnomalySeverityIcon(anomaly.severity) }}</div>
+          <div class="anomaly-details">
+            <div class="anomaly-service"><strong>{{ anomaly.service }}</strong></div>
+            <div class="anomaly-stats">
+              <span>Cost: {{ formatCurrency(anomaly.cost) }}</span>
+              <span>Expected: {{ formatCurrency(anomaly.expected_cost) }}</span>
+              <span class="deviation">Deviation: {{ anomaly.deviation_percent }}%</span>
+            </div>
+            <div class="anomaly-date">{{ anomaly.date }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Token Usage Details -->
+    <div class="section tokens-section">
+      <h2>🎫 Token Usage Details</h2>
+      <div class="tokens-grid" *ngIf="tokenUsage">
+        <div class="token-stat">
+          <div class="stat-label">Total Tokens</div>
+          <div class="stat-value">{{ formatNumber(tokenUsage.total_tokens) }}</div>
+        </div>
+        <div class="token-stat">
+          <div class="stat-label">Input Tokens</div>
+          <div class="stat-value">{{ formatNumber(tokenUsage.input_tokens) }}</div>
+        </div>
+        <div class="token-stat">
+          <div class="stat-label">Output Tokens</div>
+          <div class="stat-value">{{ formatNumber(tokenUsage.output_tokens) }}</div>
+        </div>
+        <div class="token-stat">
+          <div class="stat-label">Requests</div>
+          <div class="stat-value">{{ formatNumber(tokenUsage.request_count) }}</div>
+        </div>
+        <div class="token-stat">
+          <div class="stat-label">Total Cost</div>
+          <div class="stat-value">{{ formatCurrency(tokenUsage.total_cost) }}</div>
+        </div>
+        <div class="token-stat">
+          <div class="stat-label">Avg Cost/Request</div>
+          <div class="stat-value">{{ formatCurrency((tokenUsage.total_cost / tokenUsage.request_count) || 0) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Users by Token Usage -->
+    <div class="section top-users-section" *ngIf="topUsers.length > 0">
+      <h2>👥 Top Users by Token Usage</h2>
+      <div class="table-container">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>User ID</th>
+              <th>Total Tokens</th>
+              <th>Requests</th>
+              <th>Total Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of topUsers; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td>{{ user.user_id }}</td>
+              <td>{{ formatNumber(user.total_tokens) }}</td>
+              <td>{{ formatNumber(user.request_count) }}</td>
+              <td>{{ formatCurrency(user.total_cost) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>

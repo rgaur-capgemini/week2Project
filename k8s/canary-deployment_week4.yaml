@@ -1,0 +1,137 @@
+# Canary Deployment Configuration - Week 4
+# Canary deployment for A/B testing and gradual rollouts
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-backend-canary
+  namespace: default
+  labels:
+    app: rag-backend
+    version: canary
+    week: week4
+spec:
+  replicas: 1  # Start with 1 replica (10% of traffic)
+  selector:
+    matchLabels:
+      app: rag-backend
+      version: canary
+  template:
+    metadata:
+      labels:
+        app: rag-backend
+        version: canary
+        week: week4
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: backend
+        image: us-central1-docker.pkg.dev/botpproject/rag-chatbot-repo/backend:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PROJECT_ID
+          value: "botpproject"
+        - name: REGION
+          value: "us-central1"
+        - name: ENVIRONMENT
+          value: "canary"
+        - name: CANARY_VARIANT
+          value: "gemini-flash"  # Use Flash model for canary
+        # Feature flags for canary
+        - name: FEATURE_FLAG_GEMINI_FLASH
+          value: "true"
+        - name: FEATURE_FLAG_COST_OPTIMIZATION
+          value: "true"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 5
+---
+# Service for canary (uses same selector as main service)
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-backend-canary
+  namespace: default
+  labels:
+    app: rag-backend
+    version: canary
+spec:
+  type: ClusterIP
+  selector:
+    app: rag-backend
+    version: canary
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+---
+# Canary Ingress for traffic splitting
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rag-backend-canary-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "10"  # 10% traffic to canary
+    nginx.ingress.kubernetes.io/canary-by-header: "X-Canary"
+    nginx.ingress.kubernetes.io/canary-by-header-value: "always"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /api/*
+        pathType: Prefix
+        backend:
+          service:
+            name: rag-backend-canary
+            port:
+              number: 80
+---
+# HPA for Canary Deployment
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rag-backend-canary-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rag-backend-canary
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+# _week4

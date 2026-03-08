@@ -18,6 +18,21 @@ import { AuthService } from '../services/auth.service';
         Compliance
       </button>
       
+      <button mat-button routerLink="/finops">
+        <mat-icon>attach_money</mat-icon>
+        FinOps
+      </button>
+      
+      <button mat-button routerLink="/experiments">
+        <mat-icon>science</mat-icon>
+        Experiments
+      </button>
+      
+      <button mat-button routerLink="/observability">
+        <mat-icon>insights</mat-icon>
+        Observability
+      </button>
+      
       <button mat-button routerLink="/history">
         <mat-icon>history</mat-icon>
         History
