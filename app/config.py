@@ -172,3 +172,6 @@ config = Config()
 
 # Convenience exports for commonly accessed configs
 ADMIN_EMAILS = config.ADMIN_EMAILS
+PROJECT_ID = config.PROJECT_ID
+REGION = config.REGION
+PROJECT_NUMBER = os.getenv("PROJECT_NUMBER", "")  # Add if needed
