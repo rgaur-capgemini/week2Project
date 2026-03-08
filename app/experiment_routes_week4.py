@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 from datetime import datetime
 
-from app.auth.jwt_handler import verify_token, verify_admin
 from app.config import PROJECT_ID, REGION
 from app.logging_config import get_logger
 from google.cloud import firestore
@@ -375,7 +374,7 @@ async def disable_feature_flag(
 
 
 @router.get("/traffic-distribution")
-async def get_traffic_distribution(user: Dict = Depends(verify_token)):
+async def get_traffic_distribution():
     """Get current traffic distribution across all active variants."""
     try:
         distribution = variant_manager.get_traffic_distribution()
@@ -389,7 +388,7 @@ async def get_traffic_distribution(user: Dict = Depends(verify_token)):
 
 
 @router.get("/predefined-variants")
-async def get_predefined_variants(user: Dict = Depends(verify_admin)):
+async def get_predefined_variants():
     """Get predefined variant configurations (admin only)."""
     return {
         "prompt_variants": PROMPT_VARIANTS,
