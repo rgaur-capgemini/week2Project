@@ -24,8 +24,8 @@ google-cloud-firestore==2.18.0
 google-cloud-secret-manager==2.20.2
 google-cloud-pubsub==2.21.1  # Template ingestion
 google-cloud-dlp==3.32.0  # PII Detection
-google-cloud-bigquery==3.11.4  # Week 4: Cost tracking
-google-cloud-billing==1.12.2  # Week 4: FinOps billing APIs
+google-cloud-bigquery==3.25.0  # Week 4: Cost tracking
+google-cloud-billing==1.13.6  # Week 4: FinOps billing APIs
 pandas==2.0.3  # Week 4: Data analysis for cost reports
 
 # Vector operations and ML
