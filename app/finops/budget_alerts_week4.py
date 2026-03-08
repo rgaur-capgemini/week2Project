@@ -5,7 +5,15 @@ Manages budgets and alerts for cost control.
 
 from datetime import datetime
 from typing import Dict, List, Optional, Any
-from google.cloud import billing_budgets_v1
+
+# Optional billing imports
+try:
+    from google.cloud import billing_budgets_v1
+    BILLING_BUDGETS_AVAILABLE = True
+except ImportError:
+    BILLING_BUDGETS_AVAILABLE = False
+    billing_budgets_v1 = None
+
 from google.cloud import firestore
 from app.logging_config import get_logger
 

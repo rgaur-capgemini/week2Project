@@ -6,8 +6,22 @@ Tracks costs across all GCP services including Vertex AI tokens.
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from google.cloud import bigquery
-from google.cloud import billing_v1
-import pandas as pd
+
+# Optional billing import
+try:
+    from google.cloud import billing_v1
+    BILLING_AVAILABLE = True
+except ImportError:
+    BILLING_AVAILABLE = False
+    billing_v1 = None
+
+try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
+    pd = None
+
 from app.logging_config import get_logger
 
 logger = get_logger(__name__)
