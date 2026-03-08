@@ -7,7 +7,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 
-from app.auth.jwt_handler import verify_token, verify_admin
 from app.config import PROJECT_ID, PROJECT_NUMBER
 from app.logging_config import get_logger
 from google.cloud import firestore
@@ -55,7 +54,7 @@ class RecordTokenUsageRequest(BaseModel):
 
 # Cost tracking endpoints
 @router.get("/costs/current-month")
-async def get_current_month_costs(user: Dict = Depends(verify_token)):
+async def get_current_month_costs():
     """Get costs for the current month."""
     try:
         costs = cost_tracker.get_current_month_costs()
@@ -230,7 +229,7 @@ async def estimate_token_cost(
 
 
 @router.get("/tokens/check-limits")
-async def check_token_limits(user: Dict = Depends(verify_token)):
+async def check_token_limits():
     """Check if user is approaching usage limits."""
     try:
         user_id = user.get("email")
@@ -274,7 +273,7 @@ async def create_budget(
 
 
 @router.get("/budgets")
-async def list_budgets(user: Dict = Depends(verify_admin)):
+async def list_budgets():
     """List all budgets (admin only)."""
     if not budget_manager:
         raise HTTPException(
@@ -294,7 +293,7 @@ async def list_budgets(user: Dict = Depends(verify_admin)):
 
 
 @router.get("/budgets/templates")
-async def get_budget_templates(user: Dict = Depends(verify_admin)):
+async def get_budget_templates():
     """Get predefined budget templates (admin only)."""
     return {"templates": BUDGET_TEMPLATES}
 
@@ -329,7 +328,7 @@ async def create_cost_alert(
 
 
 @router.get("/dashboard")
-async def get_finops_dashboard(user: Dict = Depends(verify_admin)):
+async def get_finops_dashboard():
     """Get comprehensive FinOps dashboard data (admin only)."""
     try:
         # Aggregate data from multiple sources

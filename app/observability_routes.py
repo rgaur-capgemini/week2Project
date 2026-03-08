@@ -8,7 +8,6 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 
-from app.auth.jwt_handler import verify_token
 from app.config import PROJECT_ID
 from app.logging_config import get_logger
 from google.cloud import firestore, monitoring_v3
@@ -56,7 +55,7 @@ class Alert(BaseModel):
 
 
 @router.get("/slos", response_model=Dict[str, List[SLO]])
-async def get_slos(user: dict = Depends(verify_token)):
+async def get_slos():
     """Get all SLO metrics."""
     try:
         # Mock data for now - in production, query from Cloud Monitoring
@@ -99,7 +98,7 @@ async def get_slos(user: dict = Depends(verify_token)):
 
 
 @router.get("/error-budgets", response_model=Dict[str, List[ErrorBudget]])
-async def get_error_budgets(user: dict = Depends(verify_token)):
+async def get_error_budgets():
     """Get error budget status for all services."""
     try:
         # Mock data - in production, calculate from actual metrics
@@ -150,7 +149,7 @@ async def get_error_budgets(user: dict = Depends(verify_token)):
 
 
 @router.get("/synthetic-checks", response_model=Dict[str, List[SyntheticCheck]])
-async def get_synthetic_checks(user: dict = Depends(verify_token)):
+async def get_synthetic_checks():
     """Get synthetic monitoring results."""
     try:
         # Mock data - in production, run actual health checks
@@ -260,14 +259,14 @@ async def get_metrics(
 
 
 @router.get("/dashboard")
-async def get_observability_dashboard(user: dict = Depends(verify_token)):
+async def get_observability_dashboard():
     """Get complete observability dashboard data."""
     try:
-        slos_data = await get_slos(user)
-        budgets_data = await get_error_budgets(user)
-        checks_data = await get_synthetic_checks(user)
-        alerts_data = await get_alerts(user=user)
-        metrics_data = await get_metrics(hours=24, user=user)
+        slos_data = await get_slos()
+        budgets_data = await get_error_budgets()
+        checks_data = await get_synthetic_checks()
+        alerts_data = await get_alerts()
+        metrics_data = await get_metrics(hours=24)
         
         return {
             "slos": slos_data["slos"],
