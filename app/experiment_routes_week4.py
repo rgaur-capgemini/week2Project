@@ -67,8 +67,7 @@ class CreateFeatureFlagRequest(BaseModel):
 # Variant management endpoints
 @router.post("/variants")
 async def create_variant(
-    request: CreateVariantRequest,
-    user: Dict = Depends(verify_admin)
+    request: CreateVariantRequest
 ):
     """Create a new variant for A/B testing (admin only)."""
     try:
@@ -93,8 +92,7 @@ async def create_variant(
 @router.get("/variants")
 async def list_variants(
     variant_type: Optional[VariantType] = None,
-    status: Optional[str] = None,
-    user: Dict = Depends(verify_token)
+    status: Optional[str] = None
 ):
     """List all variants with optional filters."""
     try:
@@ -110,8 +108,7 @@ async def list_variants(
 
 @router.get("/variants/{variant_name}")
 async def get_variant(
-    variant_name: str,
-    user: Dict = Depends(verify_token)
+    variant_name: str
 ):
     """Get details of a specific variant."""
     variant = variant_manager.get_variant(variant_name)
@@ -123,8 +120,7 @@ async def get_variant(
 @router.put("/variants/{variant_name}/traffic")
 async def update_variant_traffic(
     variant_name: str,
-    request: UpdateTrafficRequest,
-    user: Dict = Depends(verify_admin)
+    request: UpdateTrafficRequest
 ):
     """Update traffic allocation for a variant (admin only)."""
     try:
@@ -148,8 +144,7 @@ async def update_variant_traffic(
 
 @router.post("/variants/{variant_name}/activate")
 async def activate_variant(
-    variant_name: str,
-    user: Dict = Depends(verify_admin)
+    variant_name: str
 ):
     """Activate a variant (admin only)."""
     try:
@@ -165,8 +160,7 @@ async def activate_variant(
 
 @router.post("/variants/{variant_name}/deactivate")
 async def deactivate_variant(
-    variant_name: str,
-    user: Dict = Depends(verify_admin)
+    variant_name: str
 ):
     """Deactivate a variant (admin only)."""
     try:
@@ -183,8 +177,7 @@ async def deactivate_variant(
 # A/B testing endpoints
 @router.post("/select-variant")
 async def select_variant(
-    variant_type: VariantType,
-    user: Dict = Depends(verify_token)
+    variant_type: VariantType
 ):
     """Select a variant for the current user based on A/B testing rules."""
     try:
@@ -204,8 +197,7 @@ async def select_variant(
 
 @router.post("/record-interaction")
 async def record_interaction(
-    request: RecordMetricsRequest,
-    user: Dict = Depends(verify_token)
+    request: RecordMetricsRequest
 ):
     """Record an interaction with a variant for metrics tracking."""
     try:
@@ -224,8 +216,7 @@ async def record_interaction(
 
 @router.get("/results")
 async def get_experiment_results(
-    variant_names: str,  # Comma-separated list
-    user: Dict = Depends(verify_admin)
+    variant_names: str  # Comma-separated list
 ):
     """Get A/B test results comparing variants (admin only)."""
     try:
@@ -240,8 +231,7 @@ async def get_experiment_results(
 @router.post("/variants/{variant_name}/rollout")
 async def gradual_rollout(
     variant_name: str,
-    request: GradualRolloutRequest,
-    user: Dict = Depends(verify_admin)
+    request: GradualRolloutRequest
 ):
     """Perform gradual rollout of a variant (admin only)."""
     try:
@@ -261,8 +251,7 @@ async def gradual_rollout(
 async def check_auto_rollback(
     variant_name: str,
     error_rate_threshold: float = 5.0,
-    min_requests: int = 100,
-    user: Dict = Depends(verify_admin)
+    min_requests: int = 100
 ):
     """Check if variant should be rolled back based on performance (admin only)."""
     try:
@@ -280,8 +269,7 @@ async def check_auto_rollback(
 # Feature flags endpoints
 @router.post("/feature-flags")
 async def create_feature_flag(
-    request: CreateFeatureFlagRequest,
-    user: Dict = Depends(verify_admin)
+    request: CreateFeatureFlagRequest
 ):
     """Create a new feature flag (admin only)."""
     try:
@@ -304,8 +292,7 @@ async def create_feature_flag(
 
 @router.get("/feature-flags")
 async def list_feature_flags(
-    status: Optional[FeatureFlagStatus] = None,
-    user: Dict = Depends(verify_token)
+    status: Optional[FeatureFlagStatus] = None
 ):
     """List all feature flags."""
     try:
@@ -321,8 +308,7 @@ async def list_feature_flags(
 
 @router.get("/feature-flags/{flag_name}/check")
 async def check_feature_flag(
-    flag_name: str,
-    user: Dict = Depends(verify_token)
+    flag_name: str
 ):
     """Check if a feature flag is enabled for current user."""
     try:
@@ -341,8 +327,7 @@ async def check_feature_flag(
 
 @router.post("/feature-flags/{flag_name}/enable")
 async def enable_feature_flag(
-    flag_name: str,
-    user: Dict = Depends(verify_admin)
+    flag_name: str
 ):
     """Enable a feature flag globally (admin only)."""
     try:
@@ -358,8 +343,7 @@ async def enable_feature_flag(
 
 @router.post("/feature-flags/{flag_name}/disable")
 async def disable_feature_flag(
-    flag_name: str,
-    user: Dict = Depends(verify_admin)
+    flag_name: str
 ):
     """Disable a feature flag globally (admin only)."""
     try:

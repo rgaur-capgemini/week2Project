@@ -67,8 +67,7 @@ async def get_current_month_costs():
 @router.get("/costs/by-service")
 async def get_service_costs(
     service_name: str = Query(..., description="Service name"),
-    days: int = Query(30, ge=1, le=365),
-    user: Dict = Depends(verify_token)
+    days: int = Query(30, ge=1, le=365)
 ):
     """Get costs for a specific service over time."""
     try:
@@ -81,8 +80,7 @@ async def get_service_costs(
 
 @router.get("/costs/forecast")
 async def get_cost_forecast(
-    days_ahead: int = Query(30, ge=1, le=90),
-    user: Dict = Depends(verify_token)
+    days_ahead: int = Query(30, ge=1, le=90)
 ):
     """Get cost forecast for upcoming days."""
     try:
@@ -95,8 +93,7 @@ async def get_cost_forecast(
 
 @router.get("/costs/anomalies")
 async def detect_cost_anomalies(
-    threshold_percent: float = Query(50.0, ge=0, le=200),
-    user: Dict = Depends(verify_admin)
+    threshold_percent: float = Query(50.0, ge=0, le=200)
 ):
     """Detect cost anomalies (admin only)."""
     try:
@@ -113,8 +110,7 @@ async def detect_cost_anomalies(
 # Token usage endpoints
 @router.get("/tokens/vertex-ai")
 async def get_vertex_ai_token_usage(
-    days: int = Query(30, ge=1, le=365),
-    user: Dict = Depends(verify_token)
+    days: int = Query(30, ge=1, le=365)
 ):
     """Get Vertex AI token usage and costs."""
     try:
@@ -127,8 +123,7 @@ async def get_vertex_ai_token_usage(
 
 @router.post("/tokens/record")
 async def record_token_usage(
-    request: RecordTokenUsageRequest,
-    user: Dict = Depends(verify_token)
+    request: RecordTokenUsageRequest
 ):
     """Record token usage for current user."""
     try:
@@ -162,8 +157,7 @@ async def record_token_usage(
 
 @router.get("/tokens/user-usage")
 async def get_user_token_usage(
-    days: int = Query(30, ge=1, le=365),
-    user: Dict = Depends(verify_token)
+    days: int = Query(30, ge=1, le=365)
 ):
     """Get token usage for current user."""
     try:
@@ -177,8 +171,7 @@ async def get_user_token_usage(
 
 @router.get("/tokens/project-usage")
 async def get_project_token_usage(
-    days: int = Query(30, ge=1, le=365),
-    user: Dict = Depends(verify_admin)
+    days: int = Query(30, ge=1, le=365)
 ):
     """Get token usage for entire project (admin only)."""
     try:
@@ -192,8 +185,7 @@ async def get_project_token_usage(
 @router.get("/tokens/top-users")
 async def get_top_token_users(
     days: int = Query(30, ge=1, le=365),
-    limit: int = Query(10, ge=1, le=100),
-    user: Dict = Depends(verify_admin)
+    limit: int = Query(10, ge=1, le=100)
 ):
     """Get top token users (admin only)."""
     try:
@@ -211,8 +203,7 @@ async def get_top_token_users(
 async def estimate_token_cost(
     model_name: str = Query(...),
     input_tokens: int = Query(..., ge=0),
-    output_tokens: int = Query(..., ge=0),
-    user: Dict = Depends(verify_token)
+    output_tokens: int = Query(..., ge=0)
 ):
     """Estimate cost for token usage."""
     try:
@@ -243,8 +234,7 @@ async def check_token_limits():
 # Budget management endpoints
 @router.post("/budgets")
 async def create_budget(
-    request: CreateBudgetRequest,
-    user: Dict = Depends(verify_admin)
+    request: CreateBudgetRequest
 ):
     """Create a monthly budget (admin only)."""
     if not budget_manager:
@@ -300,8 +290,7 @@ async def get_budget_templates():
 
 @router.post("/alerts")
 async def create_cost_alert(
-    request: CreateAlertRequest,
-    user: Dict = Depends(verify_admin)
+    request: CreateAlertRequest
 ):
     """Create a custom cost alert (admin only)."""
     if not budget_manager:
