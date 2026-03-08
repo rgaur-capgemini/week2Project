@@ -193,8 +193,7 @@ async def get_synthetic_checks():
 
 @router.get("/alerts", response_model=Dict[str, List[Alert]])
 async def get_alerts(
-    severity: Optional[str] = Query(None, regex="^(critical|warning|info)$"),
-    user: dict = Depends(verify_token)
+    severity: Optional[str] = Query(None, regex="^(critical|warning|info)$")
 ):
     """Get active alerts."""
     try:
@@ -222,8 +221,7 @@ async def get_alerts(
 
 @router.get("/metrics")
 async def get_metrics(
-    hours: int = Query(24, ge=1, le=168),
-    user: dict = Depends(verify_token)
+    hours: int = Query(24, ge=1, le=168)
 ):
     """Get time-series metrics for charts."""
     try:
