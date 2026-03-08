@@ -48,6 +48,9 @@ from app.api_routes import (
     analytics_router
 )
 from app.compliance_routes import compliance_router
+from app.experiment_routes_week4 import router as experiment_router
+from app.finops_routes_week4 import router as finops_router
+from app.observability_routes import router as observability_router
 import app.api_routes as api_routes_module
 
 # Initialize logger
@@ -215,6 +218,9 @@ app.include_router(auth_router)
 app.include_router(history_router)
 app.include_router(analytics_router)
 app.include_router(compliance_router)  # Week 3: Compliance routes
+app.include_router(experiment_router)  # Week 4: Experiments routes
+app.include_router(finops_router)       # Week 4: FinOps routes
+app.include_router(observability_router)  # Week 4: Observability routes
 
 @app.get("/api/config")
 async def get_public_config():
