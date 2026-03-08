@@ -1,0 +1,258 @@
+<div class="experiments-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <h1>🧪 Experiments & A/B Testing</h1>
+    <div class="header-actions">
+      <span class="last-updated" *ngIf="lastUpdated">
+        Last updated: {{ formatDate(lastUpdated) }}
+      </span>
+      <button class="btn-create" (click)="showCreateForm = !showCreateForm">
+        ➕ Create Variant
+      </button>
+      <button class="btn-refresh" (click)="refresh()" [disabled]="loading">
+        <span class="refresh-icon" [class.spinning]="loading">🔄</span> Refresh
+      </button>
+      <button class="btn-auto-refresh" (click)="toggleAutoRefresh()" [class.active]="autoRefreshEnabled">
+        {{ autoRefreshEnabled ? '⏸️' : '▶️' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading & Error -->
+  <div *ngIf="loading && variants.length === 0" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading experiments data...</p>
+  </div>
+
+  <div *ngIf="error" class="error-container">
+    <p class="error-message">{{ error }}</p>
+    <button class="btn-retry" (click)="refresh()">Try Again</button>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!loading || variants.length > 0" class="dashboard-content">
+
+    <!-- Create Variant Form -->
+    <div class="create-form" *ngIf="showCreateForm">
+      <h2>Create New Variant</h2>
+      <div class="form-group">
+        <label>Variant Name</label>
+        <input type="text" [(ngModel)]="newVariant.name" placeholder="e.g., gemini-flash">
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select [(ngModel)]="newVariant.variant_type">
+          <option value="model">Model</option>
+          <option value="prompt">Prompt</option>
+          <option value="embedding">Embedding</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Traffic Weight (%)</label>
+        <input type="number" [(ngModel)]="newVariant.traffic_weight" min="0" max="100">
+      </div>
+      <div class="form-actions">
+        <button class="btn-submit" (click)="createVariant()">Create</button>
+        <button class="btn-cancel" (click)="showCreateForm = false; resetForm()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="summary-cards">
+      <div class="card">
+        <div class="card-icon">🎯</div>
+        <div class="card-content">
+          <h3>Active Variants</h3>
+          <div class="card-value">{{ variants.filter(v => v.is_active).length }}</div>
+          <p class="card-subtitle">Total: {{ variants.length }}</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🚀</div>
+        <div class="card-content">
+          <h3>Total Requests</h3>
+          <div class="card-value">{{ formatNumber(results.reduce((sum, r) => sum + r.requests, 0)) }}</div>
+          <p class="card-subtitle">Last 7 days</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-icon">✅</div>
+        <div class="card-content">
+          <h3>Avg Success Rate</h3>
+          <div class="card-value">
+            {{ results.length > 0 ? formatPercent(results.reduce((sum, r) => sum + r.success_rate, 0) / results.length) : 'N/A' }}
+          </div>
+          <p class="card-subtitle">Across all variants</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🏁</div>
+        <div class="card-content">
+          <h3>Feature Flags</h3>
+          <div class="card-value">{{ featureFlags.filter(f => f.enabled).length }}</div>
+          <p class="card-subtitle">{{ featureFlags.length }} total</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-container">
+        <h2>📊 Performance Comparison</h2>
+        <div class="chart-wrapper" *ngIf="performanceChartData">
+          <canvas baseChart
+            [data]="performanceChartData"
+            [options]="performanceChartOptions"
+            [type]="'bar'">
+          </canvas>
+        </div>
+        <div class="no-data" *ngIf="!performanceChartData">
+          <p>No performance data available</p>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h2>💰 Cost Comparison</h2>
+        <div class="chart-wrapper" *ngIf="costChartData">
+          <canvas baseChart
+            [data]="costChartData"
+            [options]="costChartOptions"
+            [type]="'bar'">
+          </canvas>
+        </div>
+        <div class="no-data" *ngIf="!costChartData">
+          <p>No cost data available</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Traffic Distribution -->
+    <div class="chart-container traffic-chart">
+      <h2>🎯 Traffic Distribution</h2>
+      <div class="chart-wrapper" *ngIf="trafficChartData">
+        <canvas baseChart
+          [data]="trafficChartData"
+          [options]="trafficChartOptions"
+          [type]="'pie'">
+        </canvas>
+      </div>
+      <div class="no-data" *ngIf="!trafficChartData || variants.filter(v => v.is_active).length === 0">
+        <p>No active variants</p>
+      </div>
+    </div>
+
+    <!-- Variants Table -->
+    <div class="section">
+      <h2>🎯 Variants</h2>
+      <div class="table-container" *ngIf="variants.length > 0">
+        <table class="variants-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Traffic</th>
+              <th>Status</th>
+              <th>Requests</th>
+              <th>Success Rate</th>
+              <th>Avg Latency</th>
+              <th>Avg Cost</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let variant of variants">
+              <td><strong>{{ variant.name }}</strong></td>
+              <td><span class="type-badge">{{ variant.variant_type }}</span></td>
+              <td>
+                <input type="range" min="0" max="100" [value]="variant.traffic_weight"
+                  (change)="updateTraffic(variant, $any($event.target).value)"
+                  [disabled]="!variant.is_active">
+                <span class="traffic-value">{{ variant.traffic_weight }}%</span>
+              </td>
+              <td>
+                <span class="status-badge" [class]="getVariantStatusClass(variant)">
+                  {{ variant.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>{{ formatNumber(variant.total_requests || 0) }}</td>
+              <td [class]="getSuccessRateClass(variant.success_rate || 0)">
+                {{ variant.success_rate ? formatPercent(variant.success_rate) : 'N/A' }}
+              </td>
+              <td>{{ variant.avg_latency ? variant.avg_latency.toFixed(0) + ' ms' : 'N/A' }}</td>
+              <td>{{ variant.avg_cost ? formatCurrency(variant.avg_cost) : 'N/A' }}</td>
+              <td>
+                <button class="btn-toggle" (click)="toggleVariant(variant)">
+                  {{ variant.is_active ? 'Deactivate' : 'Activate' }}
+                </button>
+                <button class="btn-rollout" (click)="rolloutVariant(variant)" [disabled]="!variant.is_active">
+                  🚀 Rollout
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="no-data" *ngIf="variants.length === 0">
+        <p>No variants configured. Create a variant to start A/B testing.</p>
+      </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="section" *ngIf="results.length > 0">
+      <h2>📈 Results (Last 7 Days)</h2>
+      <div class="table-container">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>Variant</th>
+              <th>Requests</th>
+              <th>Success Rate</th>
+              <th>Avg Latency</th>
+              <th>P95 Latency</th>
+              <th>Avg Cost</th>
+              <th>Total Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let result of results">
+              <td><strong>{{ result.name }}</strong></td>
+              <td>{{ formatNumber(result.requests) }}</td>
+              <td [class]="getSuccessRateClass(result.success_rate)">
+                {{ formatPercent(result.success_rate) }}
+              </td>
+              <td>{{ result.avg_latency_ms.toFixed(0) }} ms</td>
+              <td>{{ result.p95_latency_ms.toFixed(0) }} ms</td>
+              <td>{{ formatCurrency(result.avg_cost) }}</td>
+              <td>{{ formatCurrency(result.total_cost) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Feature Flags -->
+    <div class="section">
+      <h2>🏁 Feature Flags</h2>
+      <div class="flags-list" *ngIf="featureFlags.length > 0">
+        <div *ngFor="let flag of featureFlags" class="flag-card">
+          <div class="flag-header">
+            <h3>{{ flag.name }}</h3>
+            <label class="toggle-switch">
+              <input type="checkbox" [checked]="flag.enabled" (change)="toggleFeatureFlag(flag)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <p class="flag-description">{{ flag.description }}</p>
+          <div class="flag-stats">
+            <span>Rollout: {{ flag.rollout_percentage }}%</span>
+            <span>Created: {{ formatDate(flag.created_at) }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="no-data" *ngIf="featureFlags.length === 0">
+        <p>No feature flags configured</p>
+      </div>
+    </div>
+
+  </div>
+</div>

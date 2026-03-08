@@ -1,0 +1,102 @@
+# Monitoring Alerts Configuration - Week 4
+# Cloud Monitoring alert policies for SLO tracking
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-alerts-config
+  namespace: default
+data:
+  # SLO Configuration
+  slo-config.yaml: |
+    slos:
+      - name: "api-availability"
+        target: 99.9
+        window_days: 30
+        description: "API availability SLO"
+      
+      - name: "api-latency"
+        target_p95_ms: 500
+        target_p99_ms: 1000
+        window_days: 30
+        description: "API latency SLO"
+      
+      - name: "vertex-ai-success-rate"
+        target: 99.5
+        window_days: 30
+        description: "Vertex AI prediction success rate"
+    
+    error_budgets:
+      - service: "rag-chatbot-api"
+        slo_target: 99.9
+        window_days: 30
+      
+      - service: "document-ingestion"
+        slo_target: 99.5
+        window_days: 30
+      
+      - service: "compliance-checker"
+        slo_target: 99.0
+        window_days: 30
+  
+  # Alert Thresholds
+  alert-thresholds.yaml: |
+    thresholds:
+      # Availability alerts
+      availability_critical: 99.0  # Alert if below 99%
+      availability_warning: 99.5   # Warn if below 99.5%
+      
+      # Latency alerts
+      latency_p95_ms: 500          # Alert if p95 > 500ms
+      latency_p99_ms: 1000         # Alert if p99 > 1000ms
+      
+      # Error rate alerts
+      error_rate_critical: 5.0     # Alert if > 5%
+      error_rate_warning: 2.0      # Warn if > 2%
+      
+      # Cost alerts
+      daily_cost_limit: 100.0      # Alert if daily cost > $100
+      token_cost_limit: 50.0       # Alert if token cost > $50/day
+      
+      # Resource alerts
+      cpu_utilization: 80          # Alert if CPU > 80%
+      memory_utilization: 85       # Alert if memory > 85%
+      disk_utilization: 90         # Alert if disk > 90%
+  
+  # Notification Channels
+  notification-channels.yaml: |
+    channels:
+      - type: email
+        name: "admin-alerts"
+        emails:
+          - "raman.gaur@capgemini.com"
+        severity: ["critical", "high"]
+      
+      - type: pubsub
+        name: "budget-alerts"
+        topic: "projects/botpproject/topics/budget-alerts"
+        severity: ["all"]
+      
+      - type: pubsub
+        name: "slo-alerts"
+        topic: "projects/botpproject/topics/slo-alerts"
+        severity: ["critical", "high", "medium"]
+---
+# Prometheus ServiceMonitor for custom metrics (if using Prometheus)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rag-backend-metrics
+  namespace: default
+  labels:
+    app: rag-backend
+spec:
+  selector:
+    matchLabels:
+      app: rag-backend
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+
+# _week4

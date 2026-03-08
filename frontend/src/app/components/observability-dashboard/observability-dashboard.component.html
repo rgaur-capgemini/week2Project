@@ -1,0 +1,229 @@
+<div class="observability-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <h1>📊 Observability Dashboard</h1>
+    <div class="header-actions">
+      <span class="last-updated" *ngIf="lastUpdated">
+        Last updated: {{ formatDate(lastUpdated) }}
+      </span>
+      <button class="btn-refresh" (click)="refresh()" [disabled]="loading">
+        <span class="refresh-icon" [class.spinning]="loading">🔄</span> Refresh
+      </button>
+      <button class="btn-auto-refresh" (click)="toggleAutoRefresh()" [class.active]="autoRefreshEnabled">
+        {{ autoRefreshEnabled ? '⏸️' : '▶️' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading & Error -->
+  <div *ngIf="loading && slos.length === 0" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading observability data...</p>
+  </div>
+
+  <div *ngIf="error" class="error-container">
+    <p class="error-message">{{ error }}</p>
+    <button class="btn-retry" (click)="refresh()">Try Again</button>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!loading || slos.length > 0" class="dashboard-content">
+
+    <!-- SLO Summary Cards -->
+    <div class="summary-cards">
+      <div class="card card-availability">
+        <div class="card-icon">✅</div>
+        <div class="card-content">
+          <h3>API Availability</h3>
+          <div class="card-value">{{ formatPercent(apiAvailability) }}</div>
+          <p class="card-subtitle">Target: 99.9%</p>
+        </div>
+      </div>
+
+      <div class="card card-latency">
+        <div class="card-icon">⚡</div>
+        <div class="card-content">
+          <h3>P95 Latency</h3>
+          <div class="card-value">{{ formatNumber(p95Latency, 0) }} ms</div>
+          <p class="card-subtitle">Target: < 500ms</p>
+        </div>
+      </div>
+
+      <div class="card card-latency">
+        <div class="card-icon">⏱️</div>
+        <div class="card-content">
+          <h3>P99 Latency</h3>
+          <div class="card-value">{{ formatNumber(p99Latency, 0) }} ms</div>
+          <p class="card-subtitle">Target: < 1000ms</p>
+        </div>
+      </div>
+
+      <div class="card card-errors">
+        <div class="card-icon">❌</div>
+        <div class="card-content">
+          <h3>Error Rate</h3>
+          <div class="card-value">{{ formatPercent(errorRate) }}</div>
+          <p class="card-subtitle">Target: < 0.1%</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-row">
+      <div class="chart-container">
+        <h2>📈 Availability Trend</h2>
+        <div class="chart-wrapper" *ngIf="availabilityChartData">
+          <canvas baseChart
+            [data]="availabilityChartData"
+            [options]="availabilityChartOptions"
+            [type]="'line'">
+          </canvas>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h2>⚡ Latency Percentiles</h2>
+        <div class="chart-wrapper" *ngIf="latencyChartData">
+          <canvas baseChart
+            [data]="latencyChartData"
+            [options]="latencyChartOptions"
+            [type]="'line'">
+          </canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Budget Chart -->
+    <div class="chart-container budget-chart">
+      <h2>🎯 Error Budget Status</h2>
+      <div class="chart-wrapper" *ngIf="errorBudgetChartData">
+        <canvas baseChart
+          [data]="errorBudgetChartData"
+          [options]="errorBudgetChartOptions"
+          [type]="'bar'">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- SLOs Table -->
+    <div class="section">
+      <h2>🎯 Service Level Objectives (SLOs)</h2>
+      <div class="table-container">
+        <table class="slos-table">
+          <thead>
+            <tr>
+              <th>SLO</th>
+              <th>Target</th>
+              <th>Current</th>
+              <th>Error Budget Remaining</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let slo of slos">
+              <td><strong>{{ slo.name }}</strong></td>
+              <td>{{ slo.target }}{{ slo.name.includes('Latency') ? ' ms' : '%' }}</td>
+              <td>{{ slo.current }}{{ slo.name.includes('Latency') ? ' ms' : '%' }}</td>
+              <td>
+                <div class="progress-bar">
+                  <div class="progress-fill" [style.width.%]="(slo.error_budget_remaining * 100)"></div>
+                  <span class="progress-text">{{ formatPercent(slo.error_budget_remaining * 100) }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="status-badge" [class]="getSLOStatusClass(slo.status)">
+                  {{ slo.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Error Budgets -->
+    <div class="section">
+      <h2>💰 Error Budgets by Service</h2>
+      <div class="table-container">
+        <table class="budgets-table">
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>SLO Target</th>
+              <th>Error Budget</th>
+              <th>Consumed</th>
+              <th>Remaining</th>
+              <th>Burn Rate</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let budget of errorBudgets" [class]="getErrorBudgetStatusClass(budget)">
+              <td><strong>{{ budget.service }}</strong></td>
+              <td>{{ formatPercent(budget.slo_target) }}</td>
+              <td>{{ formatPercent(budget.error_budget) }}</td>
+              <td>{{ formatPercent(budget.consumed) }}</td>
+              <td>{{ formatPercent(budget.remaining) }}</td>
+              <td>{{ formatNumber(budget.burn_rate) }}x</td>
+              <td>
+                <span class="status-badge" [class]="getErrorBudgetStatusClass(budget)">
+                  {{ budget.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Synthetic Monitoring -->
+    <div class="section">
+      <h2>🔍 Synthetic Monitoring</h2>
+      <div class="checks-grid">
+        <div *ngFor="let check of syntheticChecks" class="check-card" [class]="getCheckStatusClass(check.status)">
+          <div class="check-header">
+            <h3>{{ check.endpoint }}</h3>
+            <span class="check-status" [class]="getCheckStatusClass(check.status)">
+              {{ check.status === 'up' ? '✅' : '❌' }} {{ check.status.toUpperCase() }}
+            </span>
+          </div>
+          <div class="check-metrics">
+            <div class="metric">
+              <span class="metric-label">Latency</span>
+              <span class="metric-value">{{ check.latency_ms }} ms</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Uptime</span>
+              <span class="metric-value">{{ formatPercent(check.uptime_percentage) }}</span>
+            </div>
+          </div>
+          <div class="check-timestamp">Last checked: {{ formatDate(check.last_check) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Alerts -->
+    <div class="section" *ngIf="alerts.length > 0">
+      <h2>🚨 Active Alerts</h2>
+      <div class="alerts-list">
+        <div *ngFor="let alert of alerts" class="alert-card" [class]="getSeverityClass(alert.severity)">
+          <div class="alert-header">
+            <span class="alert-type">{{ alert.type }}</span>
+            <span class="alert-severity">{{ alert.severity }}</span>
+          </div>
+          <div class="alert-message">{{ alert.message }}</div>
+          <div class="alert-timestamp">{{ formatDate(alert.timestamp) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- No Alerts -->
+    <div class="section" *ngIf="alerts.length === 0">
+      <h2>✅ No Active Alerts</h2>
+      <div class="no-alerts">
+        <p>All systems are operating normally</p>
+      </div>
+    </div>
+
+  </div>
+</div>
