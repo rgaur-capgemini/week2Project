@@ -74,6 +74,7 @@ export class ExperimentsDashboardComponent implements OnInit, OnDestroy {
   constructor(private experimentsService: ExperimentsService) {}
 
   ngOnInit(): void {
+    console.log('Experiments Dashboard Component: ngOnInit called');
     this.loadAllData();
     this.startAutoRefresh();
   }

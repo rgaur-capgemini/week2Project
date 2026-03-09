@@ -68,6 +68,7 @@ export class FinopsDashboardComponent implements OnInit, OnDestroy {
   constructor(private finopsService: FinopsService) {}
 
   ngOnInit(): void {
+    console.log('FinOps Dashboard Component: ngOnInit called');
     this.loadAllData();
     this.startAutoRefresh();
   }

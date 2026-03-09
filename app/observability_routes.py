@@ -13,7 +13,7 @@ from app.logging_config import get_logger
 from google.cloud import firestore, monitoring_v3
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/observability", tags=["observability"])
+router = APIRouter(prefix="/api/observability", tags=["observability"])
 
 # Initialize clients
 db = firestore.Client(project=PROJECT_ID)

@@ -19,7 +19,7 @@ from app.experiments.ab_testing_week4 import ABTestingFramework
 from app.experiments.feature_flags_week4 import FeatureFlagManager, FeatureFlagStatus
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/experiments", tags=["experiments_week4"])
+router = APIRouter(prefix="/api/experiments", tags=["experiments_week4"])
 
 # Initialize clients
 db = firestore.Client(project=PROJECT_ID)

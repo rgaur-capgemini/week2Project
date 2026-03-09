@@ -16,7 +16,7 @@ from app.finops.budget_alerts_week4 import BudgetAlertsManager, BUDGET_TEMPLATES
 from app.finops.token_usage_week4 import TokenUsageTracker
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/finops", tags=["finops_week4"])
+router = APIRouter(prefix="/api/finops", tags=["finops_week4"])
 
 # Initialize clients
 db = firestore.Client(project=PROJECT_ID)
