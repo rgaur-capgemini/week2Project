@@ -80,16 +80,19 @@ export class FinopsDashboardComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = null;
 
+    console.log('FinOps Dashboard: Loading data...');
+
     Promise.all([
-      this.finopsService.getCurrentMonthCosts().toPromise(),
-      this.finopsService.getCostForecast().toPromise(),
-      this.finopsService.getCostAnomalies(7).toPromise(),
-      this.finopsService.getVertexAITokens('current_month').toPromise(),
-      this.finopsService.getBudgets().toPromise(),
-      this.finopsService.getAlerts().toPromise(),
-      this.finopsService.getTopUsers(10).toPromise()
+      this.finopsService.getCurrentMonthCosts().toPromise().catch(e => { console.error('getCurrentMonthCosts failed:', e); return null; }),
+      this.finopsService.getCostForecast().toPromise().catch(e => { console.error('getCostForecast failed:', e); return null; }),
+      this.finopsService.getCostAnomalies(7).toPromise().catch(e => { console.error('getCostAnomalies failed:', e); return { anomalies: [] }; }),
+      this.finopsService.getVertexAITokens('current_month').toPromise().catch(e => { console.error('getVertexAITokens failed:', e); return null; }),
+      this.finopsService.getBudgets().toPromise().catch(e => { console.error('getBudgets failed:', e); return { budgets: [] }; }),
+      this.finopsService.getAlerts().toPromise().catch(e => { console.error('getAlerts failed:', e); return { alerts: [] }; }),
+      this.finopsService.getTopUsers(10).toPromise().catch(e => { console.error('getTopUsers failed:', e); return { top_users: [] }; })
     ])
       .then(([costs, forecast, anomaliesData, tokens, budgetsData, alertsData, topUsersData]) => {
+        console.log('FinOps Dashboard: Data loaded successfully');
         this.costs = costs || null;
         this.forecast = forecast || null;
         this.anomalies = anomaliesData?.anomalies || [];
@@ -104,7 +107,7 @@ export class FinopsDashboardComponent implements OnInit, OnDestroy {
       })
       .catch(error => {
         console.error('Error loading FinOps data:', error);
-        this.error = 'Failed to load dashboard data. Please try again.';
+        this.error = 'Failed to load dashboard data. Please check the console for details.';
         this.loading = false;
       });
   }
