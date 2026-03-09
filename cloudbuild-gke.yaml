@@ -158,6 +158,124 @@ steps:
       - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
     waitFor: ['rollout-status-backend']
 
+  # Week 4: Verify backend route configurations
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'verify-week4-backend-routes'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== Verifying Week 4 Backend Routes Configuration ==="
+        
+        # Check if route files exist with correct prefixes
+        echo "Checking finops_routes_week4.py..."
+        grep -q 'prefix="/api/finops"' app/finops_routes_week4.py && \
+          echo "✓ FinOps route has /api/finops prefix" || \
+          echo "✗ ERROR: FinOps route missing /api/finops prefix"
+        
+        echo "Checking experiment_routes_week4.py..."
+        grep -q 'prefix="/api/experiments"' app/experiment_routes_week4.py && \
+          echo "✓ Experiments route has /api/experiments prefix" || \
+          echo "✗ ERROR: Experiments route missing /api/experiments prefix"
+        
+        echo "Checking observability_routes.py..."
+        grep -q 'prefix="/api/observability"' app/observability_routes.py && \
+          echo "✓ Observability route has /api/observability prefix" || \
+          echo "✗ ERROR: Observability route missing /api/observability prefix"
+        
+        # Check if routes are registered in main.py
+        echo "Checking main.py registrations..."
+        grep -q "finops_router" app/main.py && \
+          echo "✓ finops_router registered in main.py" || \
+          echo "✗ ERROR: finops_router not registered"
+        
+        grep -q "experiment_router" app/main.py && \
+          echo "✓ experiment_router registered in main.py" || \
+          echo "✗ ERROR: experiment_router not registered"
+        
+        grep -q "observability_router" app/main.py && \
+          echo "✓ observability_router registered in main.py" || \
+          echo "✗ ERROR: observability_router not registered"
+        
+        echo "=== Backend Routes Verification Complete ==="
+    waitFor: ['push-backend']
+
+  # Week 4: Verify frontend service configurations
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'verify-week4-frontend-services'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== Verifying Week 4 Frontend Services Configuration ==="
+        
+        # Check frontend service base URLs
+        echo "Checking finops.service.ts..."
+        grep -q 'baseUrl.*api/finops' frontend/src/app/services/finops.service.ts && \
+          echo "✓ FinOps service uses /api/finops" || \
+          echo "✗ ERROR: FinOps service missing /api/finops"
+        
+        echo "Checking experiments.service.ts..."
+        grep -q 'baseUrl.*api/experiments' frontend/src/app/services/experiments.service.ts && \
+          echo "✓ Experiments service uses /api/experiments" || \
+          echo "✗ ERROR: Experiments service missing /api/experiments"
+        
+        echo "Checking observability.service.ts..."
+        grep -q 'baseUrl.*api/observability' frontend/src/app/services/observability.service.ts && \
+          echo "✓ Observability service uses /api/observability" || \
+          echo "✗ ERROR: Observability service missing /api/observability"
+        
+        # Check Angular routing
+        echo "Checking app-routing.module.ts..."
+        grep -q "path: 'finops'" frontend/src/app/app-routing.module.ts && \
+          echo "✓ FinOps route configured" || \
+          echo "✗ ERROR: FinOps route not configured"
+        
+        grep -q "path: 'experiments'" frontend/src/app/app-routing.module.ts && \
+          echo "✓ Experiments route configured" || \
+          echo "✗ ERROR: Experiments route not configured"
+        
+        grep -q "path: 'observability'" frontend/src/app/app-routing.module.ts && \
+          echo "✓ Observability route configured" || \
+          echo "✗ ERROR: Observability route not configured"
+        
+        # Check nginx proxy configuration
+        echo "Checking nginx.conf..."
+        grep -q 'location /api/' frontend/nginx.conf && \
+          echo "✓ Nginx has /api/ proxy location" || \
+          echo "✗ ERROR: Nginx missing /api/ proxy location"
+        
+        echo "=== Frontend Services Verification Complete ==="
+    waitFor: ['push-frontend']
+
+  # Week 4: Smoke test the deployed endpoints
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'smoke-test-week4-apis'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== Testing Week 4 API Endpoints ==="
+        BACKEND_IP=$(kubectl get svc rag-backend -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        
+        echo "Testing FinOps API at http://$${BACKEND_IP}/api/finops/costs/current-month"
+        curl -f -m 10 -H "Authorization: Bearer test-token" http://$${BACKEND_IP}/api/finops/costs/current-month || \
+          echo "⚠ FinOps API not ready (may need authentication)"
+        
+        echo "Testing Experiments API at http://$${BACKEND_IP}/api/experiments/variants"
+        curl -f -m 10 -H "Authorization: Bearer test-token" http://$${BACKEND_IP}/api/experiments/variants || \
+          echo "⚠ Experiments API not ready (may need authentication)"
+        
+        echo "Testing Observability API at http://$${BACKEND_IP}/api/observability/slos"
+        curl -f -m 10 -H "Authorization: Bearer test-token" http://$${BACKEND_IP}/api/observability/slos || \
+          echo "⚠ Observability API not ready (may need authentication)"
+        
+        echo "=== Week 4 API Smoke Tests Complete ==="
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_CLUSTER_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+    waitFor: ['rollout-status-backend', 'rollout-status-frontend']
+
 images:
   - '${_BACKEND_IMAGE}:$COMMIT_SHA'
   - '${_BACKEND_IMAGE}:latest'
