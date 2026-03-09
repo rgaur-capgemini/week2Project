@@ -77,7 +77,7 @@ export interface FinOpsDashboard {
   providedIn: 'root'
 })
 export class FinopsService {
-  private baseUrl = `${environment.apiUrl}/finops`;
+  private baseUrl = `${environment.apiUrl}/api/finops`;
 
   constructor(private http: HttpClient) {
     console.log('FinOps Service initialized with baseUrl:', this.baseUrl);
