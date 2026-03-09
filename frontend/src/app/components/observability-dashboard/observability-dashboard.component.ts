@@ -110,6 +110,7 @@ export class ObservabilityDashboardComponent implements OnInit, OnDestroy {
   constructor(private observabilityService: ObservabilityService) {}
 
   ngOnInit(): void {
+    console.log('Observability Dashboard Component: ngOnInit called');
     this.loadAllData();
     this.startAutoRefresh();
   }
