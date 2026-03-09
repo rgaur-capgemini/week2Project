@@ -86,15 +86,26 @@ export class ExperimentsDashboardComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = null;
 
+    console.log('Experiments Dashboard: Loading data...');
+
     Promise.all([
-      this.experimentsService.getVariants().toPromise(),
-      this.experimentsService.getResults(7).toPromise(),
+      this.experimentsService.getVariants().toPromise()
+        .catch(e => { console.error('getVariants failed:', e); return null; }),
+      this.experimentsService.getResults(7).toPromise()
+        .catch(e => { console.error('getResults failed:', e); return null; }),
       this.experimentsService.getFeatureFlags().toPromise()
+        .catch(e => { console.error('getFeatureFlags failed:', e); return null; })
     ])
       .then(([variantsData, resultsData, flagsData]) => {
         this.variants = variantsData?.variants || [];
         this.results = resultsData?.results || [];
         this.featureFlags = flagsData?.flags || [];
+
+        console.log('Experiments data loaded:', {
+          variants: this.variants.length,
+          results: this.results.length,
+          flags: this.featureFlags.length
+        });
 
         this.updateCharts();
         this.lastUpdated = new Date();

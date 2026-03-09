@@ -66,12 +66,16 @@ async def get_current_month_costs():
 
 @router.get("/costs/by-service")
 async def get_service_costs(
-    service_name: str = Query(..., description="Service name"),
+    service_name: Optional[str] = Query(None, description="Service name (optional, returns all if not provided)"),
     days: int = Query(30, ge=1, le=365)
 ):
-    """Get costs for a specific service over time."""
+    """Get costs for a specific service or all services over time."""
     try:
-        costs = cost_tracker.get_cost_by_service(service_name, days)
+        if service_name:
+            costs = cost_tracker.get_cost_by_service(service_name, days)
+        else:
+            # Return all services
+            costs = cost_tracker.get_current_month_costs()
         return costs
     except Exception as e:
         logger.error(f"Error getting service costs: {e}")
@@ -93,6 +97,7 @@ async def get_cost_forecast(
 
 @router.get("/costs/anomalies")
 async def detect_cost_anomalies(
+    days: int = Query(7, ge=1, le=90),
     threshold_percent: float = Query(50.0, ge=0, le=200)
 ):
     """Detect cost anomalies (admin only)."""
@@ -100,7 +105,8 @@ async def detect_cost_anomalies(
         anomalies = cost_tracker.get_cost_anomalies(threshold_percent)
         return {
             "anomalies": anomalies,
-            "count": len(anomalies)
+            "count": len(anomalies),
+            "days_analyzed": days
         }
     except Exception as e:
         logger.error(f"Error detecting anomalies: {e}")
@@ -110,11 +116,20 @@ async def detect_cost_anomalies(
 # Token usage endpoints
 @router.get("/tokens/vertex-ai")
 async def get_vertex_ai_token_usage(
+    period: str = Query("current_month", regex="^(current_month|last_month|last_7_days|last_30_days)$"),
     days: int = Query(30, ge=1, le=365)
 ):
     """Get Vertex AI token usage and costs."""
     try:
-        usage = cost_tracker.get_vertex_ai_token_usage(days)
+        # Map period to days
+        period_days_map = {
+            "current_month": 30,
+            "last_month": 30,
+            "last_7_days": 7,
+            "last_30_days": 30
+        }
+        actual_days = period_days_map.get(period, days)
+        usage = cost_tracker.get_vertex_ai_token_usage(actual_days)
         return usage
     except Exception as e:
         logger.error(f"Error getting token usage: {e}")

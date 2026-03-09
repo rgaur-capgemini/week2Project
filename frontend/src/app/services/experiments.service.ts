@@ -43,7 +43,9 @@ export interface FeatureFlag {
 export class ExperimentsService {
   private baseUrl = `${environment.apiUrl}/experiments`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    console.log('Experiments Service initialized with baseUrl:', this.baseUrl);
+  }
 
   // Variant Management
   getVariants(): Observable<{ variants: Variant[] }> {

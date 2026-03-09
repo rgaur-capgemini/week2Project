@@ -120,20 +120,29 @@ async def get_variant(
 @router.put("/variants/{variant_name}/traffic")
 async def update_variant_traffic(
     variant_name: str,
-    request: UpdateTrafficRequest
+    request: UpdateTrafficRequest = None,
+    weight: float = Query(None, ge=0, le=100, description="Traffic weight (alternative to request body)")
 ):
     """Update traffic allocation for a variant (admin only)."""
     try:
+        # Accept weight from either request body or query parameter
+        traffic_percentage = weight if weight is not None else (request.traffic_percentage if request else None)
+        
+        if traffic_percentage is None:
+            raise HTTPException(status_code=400, detail="Must provide either 'weight' query parameter or request body")
+        
         success = variant_manager.update_variant_traffic(
             variant_name,
-            request.traffic_percentage
+            traffic_percentage
         )
         
         if success:
             return {
                 "status": "updated",
                 "variant_name": variant_name,
-                "traffic_percentage": request.traffic_percentage
+                "variant_id": variant_name,
+                "traffic_percentage": traffic_percentage,
+                "weight": traffic_percentage
             }
         else:
             raise HTTPException(status_code=500, detail="Failed to update traffic")
@@ -146,11 +155,12 @@ async def update_variant_traffic(
 async def activate_variant(
     variant_name: str
 ):
-    """Activate a variant (admin only)."""
+    """Activate a variant (admin only). variant_name can also be variant_id."""
     try:
+        # variant_name from URL path can be either name or ID
         success = variant_manager.activate_variant(variant_name)
         if success:
-            return {"status": "activated", "variant_name": variant_name}
+            return {"status": "activated", "variant_name": variant_name, "variant_id": variant_name}
         else:
             raise HTTPException(status_code=500, detail="Failed to activate variant")
     except Exception as e:
@@ -162,11 +172,12 @@ async def activate_variant(
 async def deactivate_variant(
     variant_name: str
 ):
-    """Deactivate a variant (admin only)."""
+    """Deactivate a variant (admin only). variant_name can also be variant_id."""
     try:
+        # variant_name from URL path can be either name or ID
         success = variant_manager.deactivate_variant(variant_name)
         if success:
-            return {"status": "deactivated", "variant_name": variant_name}
+            return {"status": "deactivated", "variant_name": variant_name, "variant_id": variant_name}
         else:
             raise HTTPException(status_code=500, detail="Failed to deactivate variant")
     except Exception as e:
@@ -216,13 +227,21 @@ async def record_interaction(
 
 @router.get("/results")
 async def get_experiment_results(
-    variant_names: str  # Comma-separated list
+    days: int = Query(7, ge=1, le=90),
+    variant_names: Optional[str] = Query(None, description="Comma-separated list of variants")
 ):
     """Get A/B test results comparing variants (admin only)."""
     try:
-        variants = [v.strip() for v in variant_names.split(",")]
+        # Get all active variants if variant_names not specified
+        if variant_names:
+            variants = [v.strip() for v in variant_names.split(",")]
+        else:
+            # Get all active variants
+            all_variants = variant_manager.list_variants()
+            variants = [v["name"] for v in all_variants if v.get("is_active", True)]
+        
         results = ab_testing.get_experiment_results(variants)
-        return results
+        return {"results": results if isinstance(results, list) else [results]}
     except Exception as e:
         logger.error(f"Error getting experiment results: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -329,11 +348,12 @@ async def check_feature_flag(
 async def enable_feature_flag(
     flag_name: str
 ):
-    """Enable a feature flag globally (admin only)."""
+    """Enable a feature flag globally (admin only). flag_name can also be flag_id."""
     try:
+        # flag_name from URL path can be either name or ID
         success = feature_flags.enable_flag(flag_name)
         if success:
-            return {"status": "enabled", "flag_name": flag_name}
+            return {"status": "enabled", "flag_name": flag_name, "flag_id": flag_name}
         else:
             raise HTTPException(status_code=500, detail="Failed to enable flag")
     except Exception as e:
@@ -345,11 +365,12 @@ async def enable_feature_flag(
 async def disable_feature_flag(
     flag_name: str
 ):
-    """Disable a feature flag globally (admin only)."""
+    """Disable a feature flag globally (admin only). flag_name can also be flag_id."""
     try:
+        # flag_name from URL path can be either name or ID
         success = feature_flags.disable_flag(flag_name)
         if success:
-            return {"status": "disabled", "flag_name": flag_name}
+            return {"status": "disabled", "flag_name": flag_name, "flag_id": flag_name}
         else:
             raise HTTPException(status_code=500, detail="Failed to disable flag")
     except Exception as e:

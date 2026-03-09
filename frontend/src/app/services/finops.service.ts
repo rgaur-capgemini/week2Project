@@ -79,11 +79,15 @@ export interface FinOpsDashboard {
 export class FinopsService {
   private baseUrl = `${environment.apiUrl}/finops`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    console.log('FinOps Service initialized with baseUrl:', this.baseUrl);
+  }
 
   // Cost APIs
   getCurrentMonthCosts(): Observable<CostData> {
-    return this.http.get<CostData>(`${this.baseUrl}/costs/current-month`);
+    const url = `${this.baseUrl}/costs/current-month`;
+    console.log('FinOps API call:', url);
+    return this.http.get<CostData>(url);
   }
 
   getCostsByService(): Observable<{ services: { service: string; cost: number }[] }> {

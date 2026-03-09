@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { ObservabilityService, SLO, ErrorBudget, SyntheticCheck, Alert } from '../../services/observability.service';
 import { environment } from '../../environments/environment';
 import { interval, Subscription } from 'rxjs';
 import { ChartData, ChartConfiguration } from 'chart.js';
@@ -107,7 +107,7 @@ export class ObservabilityDashboardComponent implements OnInit, OnDestroy {
     }
   };
 
-  constructor(private http: HttpClient) {}
+  constructor(private observabilityService: ObservabilityService) {}
 
   ngOnInit(): void {
     this.loadAllData();
@@ -122,47 +122,53 @@ export class ObservabilityDashboardComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = null;
 
-    // Mock data for now - replace with actual API calls
-    Promise.resolve().then(() => {
-      // Mock SLOs
-      this.slos = [
-        { name: 'API Availability', target: 99.9, current: 99.95, status: 'healthy', error_budget_remaining: 0.08 },
-        { name: 'P95 Latency', target: 500, current: 342, status: 'healthy', error_budget_remaining: 0.32 },
-        { name: 'P99 Latency', target: 1000, current: 678, status: 'healthy', error_budget_remaining: 0.32 },
-        { name: 'Error Rate', target: 0.1, current: 0.05, status: 'healthy', error_budget_remaining: 0.5 }
-      ];
+    console.log('Observability Dashboard: Loading data...');
 
-      // Mock Error Budgets
-      this.errorBudgets = [
-        { service: 'rag-chatbot-api', slo_target: 99.9, error_budget: 0.1, consumed: 0.02, remaining: 0.08, burn_rate: 0.5, status: 'healthy' },
-        { service: 'document-ingestion', slo_target: 99.5, error_budget: 0.5, consumed: 0.15, remaining: 0.35, burn_rate: 0.8, status: 'warning' },
-        { service: 'compliance-checker', slo_target: 99.0, error_budget: 1.0, consumed: 0.3, remaining: 0.7, burn_rate: 0.6, status: 'healthy' },
-        { service: 'vertex-ai-embeddings', slo_target: 99.9, error_budget: 0.1, consumed: 0.01, remaining: 0.09, burn_rate: 0.2, status: 'healthy' }
-      ];
+    Promise.all([
+      this.observabilityService.getSLOs().toPromise()
+        .catch(e => { console.error('getSLOs failed:', e); return null; }),
+      this.observabilityService.getErrorBudgets().toPromise()
+        .catch(e => { console.error('getErrorBudgets failed:', e); return null; }),
+      this.observabilityService.getSyntheticChecks().toPromise()
+        .catch(e => { console.error('getSyntheticChecks failed:', e); return null; }),
+      this.observabilityService.getAlerts().toPromise()
+        .catch(e => { console.error('getAlerts failed:', e); return null; })
+    ])
+      .then(([sloData, budgetData, checksData, alertsData]) => {
+        this.slos = sloData?.slos || [];
+        this.errorBudgets = budgetData?.error_budgets || [];
+        this.syntheticChecks = checksData?.synthetic_checks || [];
+        this.alerts = alertsData?.alerts || [];
 
-      // Mock Synthetic Checks
-      this.syntheticChecks = [
-        { endpoint: '/health', status: 'up', latency_ms: 45, last_check: new Date().toISOString(), uptime_percentage: 100 },
-        { endpoint: '/chat', status: 'up', latency_ms: 234, last_check: new Date().toISOString(), uptime_percentage: 99.98 },
-        { endpoint: '/compliance/check', status: 'up', latency_ms: 567, last_check: new Date().toISOString(), uptime_percentage: 99.85 },
-        { endpoint: '/documents/upload', status: 'up', latency_ms: 123, last_check: new Date().toISOString(), uptime_percentage: 99.92 }
-      ];
+        // Update metrics from SLOs
+        if (this.slos.length > 0) {
+          const availabilitySLO = this.slos.find(s => s.name === 'API Availability');
+          const p95SLO = this.slos.find(s => s.name === 'P95 Latency');
+          const p99SLO = this.slos.find(s => s.name === 'P99 Latency');
+          const errorRateSLO = this.slos.find(s => s.name === 'Error Rate');
 
-      // Mock Alerts
-      this.alerts = [
-        { alert_id: '1', type: 'error_budget', severity: 'warning', message: 'document-ingestion error budget at 70% consumption', timestamp: new Date(Date.now() - 3600000).toISOString() }
-      ];
+          if (availabilitySLO) this.apiAvailability = availabilitySLO.current;
+          if (p95SLO) this.p95Latency = p95SLO.current;
+          if (p99SLO) this.p99Latency = p99SLO.current;
+          if (errorRateSLO) this.errorRate = errorRateSLO.current;
+        }
 
-      // Metrics
-      this.apiAvailability = 99.95;
-      this.p95Latency = 342;
-      this.p99Latency = 678;
-      this.errorRate = 0.05;
+        console.log('Observability data loaded:', {
+          slos: this.slos.length,
+          errorBudgets: this.errorBudgets.length,
+          syntheticChecks: this.syntheticChecks.length,
+          alerts: this.alerts.length
+        });
 
-      this.updateCharts();
-      this.lastUpdated = new Date();
-      this.loading = false;
-    });
+        this.updateCharts();
+        this.lastUpdated = new Date();
+        this.loading = false;
+      })
+      .catch(error => {
+        console.error('Error loading observability data:', error);
+        this.error = 'Failed to load observability data. Please try again.';
+        this.loading = false;
+      });
   }
 
   updateCharts(): void {
