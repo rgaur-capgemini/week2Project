@@ -41,7 +41,7 @@ export interface Alert {
   providedIn: 'root'
 })
 export class ObservabilityService {
-  private baseUrl = `${environment.apiUrl}/observability`;
+  private baseUrl = `${environment.apiUrl}/api/observability`;
 
   constructor(private http: HttpClient) {
     console.log('Observability Service initialized with baseUrl:', this.baseUrl);

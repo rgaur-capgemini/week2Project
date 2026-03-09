@@ -41,7 +41,7 @@ export interface FeatureFlag {
   providedIn: 'root'
 })
 export class ExperimentsService {
-  private baseUrl = `${environment.apiUrl}/experiments`;
+  private baseUrl = `${environment.apiUrl}/api/experiments`;
 
   constructor(private http: HttpClient) {
     console.log('Experiments Service initialized with baseUrl:', this.baseUrl);
