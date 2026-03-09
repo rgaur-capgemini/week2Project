@@ -3,7 +3,7 @@ Experiment API Routes - Week 4
 FastAPI routes for managing experiments, variants, and A/B testing.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 from datetime import datetime
