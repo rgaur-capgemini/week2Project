@@ -48,6 +48,8 @@ from app.api_routes import (
     analytics_router
 )
 from app.compliance_routes import compliance_router
+from app.agent_routes import router as agent_router  # Week 5: Agent routes
+from app.multimodal_routes import router as multimodal_router  # Week 5: Multimodal routes
 from app.experiment_routes_week4 import router as experiment_router
 from app.finops_routes_week4 import router as finops_router
 from app.observability_routes import router as observability_router
@@ -221,6 +223,8 @@ app.include_router(compliance_router)  # Week 3: Compliance routes
 app.include_router(experiment_router)  # Week 4: Experiments routes
 app.include_router(finops_router)       # Week 4: FinOps routes
 app.include_router(observability_router)  # Week 4: Observability routes
+app.include_router(agent_router)       # Week 5: Agent routes
+app.include_router(multimodal_router)  # Week 5: Multimodal routes
 
 @app.get("/api/config")
 async def get_public_config():

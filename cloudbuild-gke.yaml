@@ -94,6 +94,70 @@ steps:
       - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
     waitFor: ['deploy-frontend']
 
+  # Week 5: CSV Processor Cloud Function
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-csv-function'
+    entrypoint: 'gcloud'
+    args:
+      - 'functions'
+      - 'deploy'
+      - 'csv-processor'
+      - '--gen2'
+      - '--runtime=python311'
+      - '--region=${_REGION}'
+      - '--source=cloud-functions/csv-processor'
+      - '--entry-point=process_csv'
+      - '--trigger-event-filters=type=google.cloud.storage.object.v1.finalized'
+      - '--trigger-event-filters=bucket=botpproject-csv-uploads'
+      - '--set-env-vars=PROJECT_ID=${_PROJECT_ID}'
+      - '--max-instances=10'
+      - '--memory=512Mi'
+      - '--timeout=540s'
+    waitFor: ['rollout-status-backend']
+
+  # Week 5: Create GCS buckets
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'create-gcs-buckets'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gsutil ls -b gs://botpproject-csv-uploads 2>/dev/null || \
+        gsutil mb -p ${_PROJECT_ID} -l ${_REGION} gs://botpproject-csv-uploads
+        
+        gsutil ls -b gs://botpproject-images 2>/dev/null || \
+        gsutil mb -p ${_PROJECT_ID} -l ${_REGION} gs://botpproject-images
+    waitFor: ['get-credentials']
+
+  # Week 5: Smoke tests
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'smoke-test-agent'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        BACKEND_IP=$(kubectl get svc rag-backend -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        echo "Testing agent endpoint at http://$${BACKEND_IP}:8000/agent/tools"
+        curl -f -m 10 http://$${BACKEND_IP}:8000/agent/tools || echo "Agent endpoint not ready yet"
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_CLUSTER_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+    waitFor: ['rollout-status-backend']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'smoke-test-multimodal'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        BACKEND_IP=$(kubectl get svc rag-backend -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        echo "Testing multimodal endpoint at http://$${BACKEND_IP}:8000/multimodal/images"
+        curl -f -m 10 http://$${BACKEND_IP}:8000/multimodal/images?limit=10 || echo "Multimodal endpoint not ready yet"
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_CLUSTER_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+    waitFor: ['rollout-status-backend']
+
 images:
   - '${_BACKEND_IMAGE}:$COMMIT_SHA'
   - '${_BACKEND_IMAGE}:latest'

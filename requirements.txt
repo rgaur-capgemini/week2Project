@@ -9,6 +9,7 @@ python-multipart==0.0.12
 beautifulsoup4==4.12.3
 PyPDF2==3.0.1
 python-docx==1.1.0
+Pillow>=10.4.0  # Week 5: Image processing
 
 # OpenTelemetry observability
 opentelemetry-sdk==1.22.0
